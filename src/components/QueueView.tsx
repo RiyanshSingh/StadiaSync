@@ -17,13 +17,11 @@ export default function QueueView() {
   const { userTicket, guestTicketData, matchData } = useApp();
   const displayTicket = userTicket || guestTicketData;
   const [queues, setQueues] = useState<QueueItem[]>([]);
-  const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     const fetchQueues = async () => {
       if (!supabase) {
         setQueues([]);
-        setIsLive(false);
         return;
       }
 
@@ -40,10 +38,8 @@ export default function QueueView() {
           status: q.status ?? 'Low Wait',
         }));
         setQueues(nextQueues);
-        setIsLive(nextQueues.length > 0);
       } else {
         setQueues([]);
-        setIsLive(false);
       }
     };
 
