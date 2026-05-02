@@ -98,12 +98,6 @@ export default function TicketsView() {
 
   return (
     <div className="tickets-container">
-      {/* Header */}
-      <div className="tickets-header">
-        <h2 className="display-title">My <span className="text-accent-primary">Wallet.</span></h2>
-        <p className="page-subtitle">Ready for the big game.</p>
-      </div>
-
       {/* ── Premium Redesigned Ticket ── */}
       <motion.div
         className="active-ticket-wrapper"

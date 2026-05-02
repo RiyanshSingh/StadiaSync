@@ -281,10 +281,6 @@ export default function ProfileView() {
 
   return (
     <div className="profile-container">
-      <div className="page-header" style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <h2 className="display-title">MY PROFILE</h2>
-        <p className="page-subtitle" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '1px' }}>YOUR MATCH STATS</p>
-      </div>
       {/* Premium Header */}
       <div className="profile-header">
         <div className="profile-hero">

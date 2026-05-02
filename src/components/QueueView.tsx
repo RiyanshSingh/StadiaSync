@@ -78,12 +78,6 @@ export default function QueueView() {
 
   return (
     <div className="queue-container">
-      <div className="queue-header">
-        <h2 className="display-title">Live<br/><span className="text-accent-primary">Queues.</span></h2>
-        <p className="page-subtitle">
-          {isLive ? '🟢 Real-time stadium traffic' : 'Demo data — connect admin panel to go live'}
-        </p>
-      </div>
 
       <div className="queue-list">
         <AnimatePresence>

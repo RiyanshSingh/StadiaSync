@@ -179,10 +179,6 @@ export default function FoodView() {
     <div className="food-container">
       {/* Premium Header Region */}
       <div className="food-top-region">
-        <div className="food-header-text">
-          <h2 className="display-title">Cravings. <span className="text-accent-tertiary">Solved.</span></h2>
-          <p className="page-subtitle">Skip the lines, not the game.</p>
-        </div>
 
         <div className="delivery-toggle-container glass-panel">
           <button className={`toggle-mode ${deliveryMode === 'pickup' ? 'active' : ''}`} onClick={() => setDeliveryMode('pickup')}>

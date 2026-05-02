@@ -28,10 +28,6 @@ export default function AlertsView() {
 
   return (
     <div className="alerts-container">
-      <div className="alerts-header">
-        <h2 className="display-title">Security <span className="text-accent-warning">Alerts.</span></h2>
-        <p className="page-subtitle">Live intel & emergency guidance</p>
-      </div>
 
       <div className="alerts-feed">
         {alerts.length > 0 ? alerts.map((alert, idx) => (

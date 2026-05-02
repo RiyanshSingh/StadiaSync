@@ -180,8 +180,6 @@ export default function AdminView() {
         <button onClick={() => navigateTo('profile')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer', marginBottom: 8 }}>
           <ChevronLeft size={16} /> Back to Profile
         </button>
-        <h2 className="display-title text-accent-warning">Command<br/>Center.</h2>
-        <p className="page-subtitle">Staff Admin Panel</p>
       </div>
 
       {/* Tab Bar */}
