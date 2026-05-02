@@ -2,40 +2,67 @@ import { Activity, Clock, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { FALLBACK_QUEUES } from '../constants/fallbackData';
+import { useApp } from '../contexts/AppContext';
 import './QueueView.css';
 
+interface QueueItem {
+  id: string;
+  type: string;
+  name: string;
+  waitMin: number;
+  status: string;
+}
+
 export default function QueueView() {
-  const [queues, setQueues] = useState<any[]>(FALLBACK_QUEUES);
+  const { userTicket, guestTicketData, matchData } = useApp();
+  const displayTicket = userTicket || guestTicketData;
+  const [queues, setQueues] = useState<QueueItem[]>([]);
   const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
     const fetchQueues = async () => {
+      if (!supabase) {
+        setQueues([]);
+        setIsLive(false);
+        return;
+      }
+
       const { data } = await supabase.from('queue_status').select('*');
       if (data && data.length > 0) {
-        setQueues(data.map(q => ({
+        const currentStadium = displayTicket?.stadium ?? matchData?.stadium ?? null;
+        const nextQueues = data
+          .filter((q) => !currentStadium || !q.stadium || q.stadium === currentStadium)
+          .map(q => ({
           id: q.id,
           type: q.type ?? 'Gate',
           name: q.name ?? q.id,
           waitMin: q.waitMin ?? 0,
           status: q.status ?? 'Low Wait',
-        })));
-        setIsLive(true);
+        }));
+        setQueues(nextQueues);
+        setIsLive(nextQueues.length > 0);
+      } else {
+        setQueues([]);
+        setIsLive(false);
       }
     };
 
-    fetchQueues();
+    void fetchQueues();
 
     const channel = supabase
-      .channel('queue_status_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_status' }, () => {
-        fetchQueues();
-      })
-      .subscribe();
+      ? supabase
+          .channel('queue_status_changes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_status' }, () => {
+            void fetchQueues();
+          })
+          .subscribe()
+      : null;
     return () => {
-      supabase.removeChannel(channel);
+      if (channel && supabase) {
+        void supabase.removeChannel(channel);
+      }
     };
-  }, []);
+  }, [displayTicket?.stadium, matchData?.stadium]);
 
   const getStatusColor = (status: string) => {
     if (status === 'Low Wait')    return 'var(--accent-success)';
@@ -86,6 +113,9 @@ export default function QueueView() {
               </div>
             </motion.div>
           ))}
+          {queues.length === 0 && (
+            <div className="empty-state-p">No live queue rows are configured for this stadium.</div>
+          )}
         </AnimatePresence>
       </div>
 

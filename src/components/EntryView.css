@@ -4,18 +4,21 @@
   width: 100vw;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  overflow-y: auto;
   background: var(--bg-primary);
   z-index: 100;
-  padding: 40px 20px;
+  overflow-x: hidden;
+}
+
+.entry-top-bar {
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  justify-content: flex-start;
+  z-index: 1001;
 }
 
 .entry-cancel-btn {
-  position: absolute;
-  top: 24px;
-  left: 24px;
   background: none;
   border: none;
   color: var(--text-tertiary);
@@ -25,7 +28,6 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  z-index: 1000;
   text-transform: uppercase;
   transition: color 0.2s;
 }
@@ -38,12 +40,13 @@
 .entry-content, .scanner-content, .result-content {
   width: 100%;
   max-width: 400px;
-  padding: var(--spacing-6);
+  margin: auto;
+  padding: 0 var(--spacing-6) 40px var(--spacing-6);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
 }
 
 .success-header {
@@ -55,19 +58,19 @@
 }
 
 .landing-branding {
-  margin-top: 40px;
-  margin-bottom: 20px;
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 
 .branding h1 {
-  font-size: 48px;
+  font-size: 42px;
   font-family: var(--font-heading);
   letter-spacing: -2px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: var(--text-primary);
   text-transform: uppercase;
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .branding p {
@@ -81,8 +84,8 @@
 .feature-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin: 32px 0 64px 0;
+  gap: 12px;
+  margin: 20px 0;
   width: 100%;
 }
 
@@ -225,24 +228,33 @@
 .ticket-identity-badge {
   background: var(--bg-elevated);
   border: 3px solid var(--border-color);
-  padding: 10px 16px;
+  padding: 12px 16px;
   border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 800;
   color: var(--text-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 8px;
   text-align: center;
-  max-width: 90%;
+  width: 100%;
   text-transform: uppercase;
   box-shadow: 4px 4px 0 0 #000;
 }
 
-.ticket-identity-badge .separator {
-  display: none; /* Removed for stacked layout */
+.stadium-name {
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.block-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: var(--bg-primary);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .gate-label {
@@ -265,24 +277,25 @@
 }
 
 .gate-stats-shelf {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   background: var(--bg-elevated);
   border: 3px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 16px;
-  gap: 16px;
+  padding: 12px;
+  gap: 12px;
   box-shadow: var(--shadow-sm);
 }
 
 .g-stat {
-  flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .g-stat:first-child {
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right: 2px solid var(--border-color);
+  padding-right: 4px;
 }
 
 .stat-icon-wrap {
@@ -415,13 +428,22 @@
 .back-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: var(--text-secondary);
+  gap: 6px;
+  color: var(--text-tertiary);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   align-self: flex-start;
   background: none;
   border: none;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.back-btn:hover {
+  color: var(--text-primary);
 }
 
 .manual-form {

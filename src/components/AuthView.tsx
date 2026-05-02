@@ -1,10 +1,19 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useApp } from '../contexts/AppContext';
 import './AuthView.css';
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
 
-export default function AuthView() {
+  return 'Authentication failed';
+}
+
+export default function AuthView({ onContinueAsGuest }: { onContinueAsGuest: () => void }) {
+  const { isSupabaseEnabled } = useApp();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +22,31 @@ export default function AuthView() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const handleAnonymousSignIn = async () => {
+    if (!supabase || !isSupabaseEnabled) {
+      setError('Supabase is not configured. Guest access is unavailable right now.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      await onContinueAsGuest();
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
+    if (!supabase || !isSupabaseEnabled) {
+      setError('Supabase is not configured. Sign-in is unavailable right now.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -21,8 +54,8 @@ export default function AuthView() {
         provider: 'google',
       });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -30,8 +63,14 @@ export default function AuthView() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase || !isSupabaseEnabled) {
+      setError('Supabase is not configured. Email sign-in is unavailable right now.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setSuccessMsg(null);
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
@@ -47,8 +86,35 @@ export default function AuthView() {
         });
         if (error) throw error;
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!supabase || !isSupabaseEnabled) {
+      setError('Password reset is unavailable until Supabase is configured.');
+      return;
+    }
+
+    if (!email.trim()) {
+      setError('Enter your email address first to reset your password.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+
+      setSuccessMsg('Password reset link sent. Please check your inbox.');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -94,7 +160,7 @@ export default function AuthView() {
 
           {!isSignUp && (
             <div className="forgot-link">
-              <a href="#">FORGOT PASSWORD?</a>
+              <button type="button" onClick={handlePasswordReset}>FORGOT PASSWORD?</button>
             </div>
           )}
 
@@ -116,9 +182,15 @@ export default function AuthView() {
           </button>
         </form>
 
+        {!isSupabaseEnabled && (
+          <div className="auth-error" style={{ marginTop: 12 }}>
+            Live auth is unavailable because Supabase env vars are missing.
+          </div>
+        )}
+
         {/* Social Login */}
         <div className="social-auth-section">
-          <button className="social-btn google" onClick={handleGoogleSignIn} disabled={loading}>
+          <button className="social-btn google" onClick={handleGoogleSignIn} disabled={loading || !isSupabaseEnabled}>
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z"/>
               <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09c1.98 3.93 6.01 6.62 10.71 6.62z"/>
@@ -128,10 +200,15 @@ export default function AuthView() {
             <span>Continue with Google</span>
           </button>
         </div>
+        <div className="social-auth-section">
+          <button className="secondary-entry-btn" onClick={handleAnonymousSignIn} type="button" disabled={loading || !isSupabaseEnabled}>
+            Continue with Anonymous Pass
+          </button>
+        </div>
         <div className="auth-footer">
           <p>
             {isSignUp ? 'Already have an account?' : "Don't have a profile?"}
-            <button onClick={() => setIsSignUp(!isSignUp)} className="switch-btn">
+            <button type="button" onClick={() => setIsSignUp(!isSignUp)} className="switch-btn">
               {isSignUp ? 'Sign In' : 'Join Now'}
             </button>
           </p>

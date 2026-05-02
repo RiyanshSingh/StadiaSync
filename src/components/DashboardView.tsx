@@ -2,21 +2,41 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Zap, MapPin, Car, Train, Users, Award, ChevronRight, PlayCircle, Fingerprint, Ticket, Coffee, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { logPerkAction, type PerkCatalogRow, type ReplayItemRow } from '../lib/appData';
 import { useApp } from '../contexts/AppContext';
-import { FALLBACK_ALERTS, FALLBACK_FACILITIES } from '../constants/fallbackData';
 import SquadTrackerModal from './SquadTrackerModal';
 import './DashboardView.css';
 
+interface FacilityItem {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  dist: string;
+  color?: string | null;
+  stadium?: string | null;
+}
+
+interface TransportOption {
+  id: string;
+  mode: 'metro' | 'car';
+  title: string;
+  subtitle: string;
+  eta_min: number;
+  stadium?: string | null;
+}
+
 export default function DashboardView() {
-  const { navigateTo, userTicket, guestTicketData, matchData, homeLocation, alerts: globalAlerts } = useApp();
+  const { isSupabaseEnabled, navigateTo, session, userTicket, guestTicketData, matchData, homeLocation, alerts: globalAlerts } = useApp();
   const displayTicket = userTicket || guestTicketData;
   const [loading, setLoading] = useState(true);
-  const [facilities, setFacilities] = useState<any[]>([]);
-  const alerts = globalAlerts.length > 0 ? globalAlerts.slice(0, 2) : FALLBACK_ALERTS.slice(0, 2);
-  const [transportTimes, setTransportTimes] = useState({ metro: 4, car: 12 });
+  const [facilities, setFacilities] = useState<FacilityItem[]>([]);
+  const [replayItem, setReplayItem] = useState<ReplayItemRow | null>(null);
+  const [vipPerk, setVipPerk] = useState<PerkCatalogRow | null>(null);
+  const [transportOptions, setTransportOptions] = useState<TransportOption[]>([]);
+  const alerts = globalAlerts.slice(0, 2);
   const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
 
-  // Toast for stub actions
   const [toast, setToast] = useState('');
   const showToast = (msg: string) => {
     setToast(msg);
@@ -24,44 +44,100 @@ export default function DashboardView() {
   };
 
   useEffect(() => {
-    const fetchFacilities = async () => {
-      const { data } = await supabase.from('facilities').select('*');
-      if (data && data.length > 0) {
-        setFacilities(data);
-      } else {
-        setFacilities(FALLBACK_FACILITIES);
+    const client = supabase;
+    let isMounted = true;
+
+    const loadDashboardData = async () => {
+      if (!client || !isSupabaseEnabled) {
+        if (isMounted) {
+          setFacilities([]);
+          setReplayItem(null);
+          setVipPerk(null);
+          setTransportOptions([]);
+          setLoading(false);
+        }
+        return;
       }
+
+      const [facilitiesRes, replayRes, perksRes, transportRes] = await Promise.all([
+        client.from('facilities').select('*').order('name'),
+        client.from('replay_items').select('*').eq('status', 'published').order('created_at', { ascending: false }).limit(1),
+        client.from('perk_catalog').select('*').eq('status', 'active').eq('category', 'dashboard').limit(1),
+        client.from('transport_options').select('*').order('eta_min', { ascending: true }),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      const currentStadium = displayTicket?.stadium ?? matchData?.stadium ?? null;
+      const allFacilities = (facilitiesRes.data as FacilityItem[] | null) ?? [];
+      const allTransport = (transportRes.data as TransportOption[] | null) ?? [];
+
+      setFacilities(
+        allFacilities.filter((item) => !currentStadium || !item.stadium || item.stadium === currentStadium),
+      );
+      setReplayItem((replayRes.data?.[0] as ReplayItemRow | undefined) ?? null);
+      setVipPerk((perksRes.data?.[0] as PerkCatalogRow | undefined) ?? null);
+      setTransportOptions(
+        allTransport.filter((item) => !currentStadium || !item.stadium || item.stadium === currentStadium),
+      );
+      setLoading(false);
     };
 
-    fetchFacilities();
+    void loadDashboardData();
 
-    const channel = supabase
-      .channel('facilities_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, () => {
-        fetchFacilities();
-      })
-      .subscribe();
-
-    setLoading(false);
-
-    // Simulate transport jitter
-    const timer = setInterval(() => {
-      setTransportTimes(prev => ({
-        metro: Math.max(2, prev.metro + (Math.random() > 0.5 ? 1 : -1)),
-        car: Math.max(5, prev.car + (Math.random() > 0.5 ? 1 : -1))
-      }));
-    }, 10000);
+    const channels = client
+      ? [
+          client.channel('facilities_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'facilities' }, () => void loadDashboardData()).subscribe(),
+          client.channel('replay_items_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'replay_items' }, () => void loadDashboardData()).subscribe(),
+          client.channel('perk_catalog_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'perk_catalog' }, () => void loadDashboardData()).subscribe(),
+          client.channel('transport_options_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'transport_options' }, () => void loadDashboardData()).subscribe(),
+        ]
+      : [];
 
     return () => {
-      supabase.removeChannel(channel);
-      clearInterval(timer);
+      isMounted = false;
+      if (client) {
+        channels.forEach((channel) => void client.removeChannel(channel));
+      }
     };
-  }, []);
+  }, [displayTicket?.stadium, isSupabaseEnabled, matchData?.stadium]);
+
+  const handleReplayOpen = () => {
+    if (!replayItem) {
+      showToast('No replay clips are published for this match yet.');
+      return;
+    }
+
+    showToast(`Replay ready: ${replayItem.title}`);
+  };
+
+  const handlePerkUnlock = async () => {
+    if (!vipPerk || !session || !supabase) {
+      showToast('No live VIP perk is configured right now.');
+      return;
+    }
+
+    const { error } = await logPerkAction(supabase, {
+      uid: session.id,
+      perkId: vipPerk.id,
+      action: 'unlock',
+      metadata: {
+        title: vipPerk.title,
+      },
+    });
+
+    if (error) {
+      showToast(`Perk unlock failed: ${error.message}`);
+      return;
+    }
+
+    showToast(`${vipPerk.title} unlocked.`);
+  };
 
   return (
     <div className="dashboard-container">
-
-      {/* Loading Skeleton */}
       {loading && (
         <div className="dash-skeleton">
           <div className="skel-card skel-tall" />
@@ -73,7 +149,7 @@ export default function DashboardView() {
           <div className="skel-card" />
         </div>
       )}
-      {/* Active Pass / Next Action Widget */}
+
       <section className="active-pass-widget glass-panel">
         <div className="ap-top">
           <div className="ap-meta">
@@ -86,7 +162,7 @@ export default function DashboardView() {
         <div className="ap-body">
           <div className="match-title">
             <span className="team" style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {displayTicket?.stadium || matchData?.stadium || 'Loading Stadium...'}
+              {displayTicket?.stadium || matchData?.stadium || 'Match data unavailable'}
             </span>
           </div>
         </div>
@@ -113,7 +189,7 @@ export default function DashboardView() {
         <div className="ap-footer">
           <div className="gate-note">
             <Zap size={14} className="text-accent-success" />
-            <span>{displayTicket?.gate ? `${displayTicket.gate} has minimum wait time.` : 'Checking gate status...'}</span>
+            <span>{displayTicket?.gate ? `Assigned entry: ${displayTicket.gate}` : 'Link a ticket to unlock gate guidance.'}</span>
           </div>
           <button className="nav-seat-btn" onClick={() => navigateTo('map')}>
             <MapPin size={16} /> Navigate to Seat
@@ -121,7 +197,6 @@ export default function DashboardView() {
         </div>
       </section>
 
-      {/* Nearby Amenities Carousel */}
       <section className="upcoming-matches">
         <div className="section-header-compact">
           <h3 className="section-title">Nearest Facilities</h3>
@@ -143,25 +218,25 @@ export default function DashboardView() {
               </motion.div>
             ))
           ) : (
-             <div className="empty-state-p">Searching for nearby facilities...</div>
+             <div className="empty-state-p">No live facility data is configured yet.</div>
           )}
         </div>
       </section>
 
-      {/* Smart Crowd Alerts — Live from Firestore */}
       <section className="crowd-alerts">
         <div className="section-header-compact">
           <h3 className="section-title">Live Intel</h3>
         </div>
-        
+
         <div className="alert-stack">
-          {alerts.map((alert) => (
-            <motion.div 
+          {alerts.length > 0 ? alerts.map((alert) => (
+            <motion.div
               key={alert.id}
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              whileTap={{ scale: 0.98 }} 
+              whileTap={{ scale: 0.98 }}
               className={`alert-card ${alert.type === 'warning' ? 'intel-warning' : 'intel-success'} glass-panel`}
+              onClick={() => navigateTo(alert.type === 'warning' || alert.type === 'emergency' ? 'alerts' : 'map')}
             >
               <div className="alert-icon-wrap">
                 {alert.type === 'warning' ? <Activity size={20} /> : <Zap size={20} />}
@@ -172,16 +247,17 @@ export default function DashboardView() {
               </div>
               <ChevronRight size={16} className="text-secondary" />
             </motion.div>
-          ))}
+          )) : (
+            <div className="empty-state-p">No alerts have been published for this match.</div>
+          )}
         </div>
       </section>
 
-      {/* Control Center Grid */}
       <section className="quick-access">
         <div className="section-header-compact">
           <h3 className="section-title">Control Center</h3>
         </div>
-        
+
         <div className="bento-grid">
           <motion.button whileTap={{ scale: 0.95 }} className="bento-box wide glass-panel" onClick={() => navigateTo('map')}>
             <div className="bento-icon bg-tertiary text-accent-tertiary">
@@ -196,13 +272,13 @@ export default function DashboardView() {
             <div className="bento-action"><ChevronRight size={18} /></div>
           </motion.button>
 
-          <motion.button whileTap={{ scale: 0.95 }} className="bento-box square glass-panel" onClick={() => showToast('Replays loading... Coming Soon!')}>
+          <motion.button whileTap={{ scale: 0.95 }} className="bento-box square glass-panel" onClick={handleReplayOpen}>
              <div className="bento-icon bg-success text-accent-success">
               <PlayCircle size={24} />
             </div>
             <span className="feature-title mt-top">Watch<br/>Replays</span>
           </motion.button>
-          
+
           <motion.button whileTap={{ scale: 0.95 }} className="bento-box square glass-panel" onClick={() => setIsSquadModalOpen(true)}>
              <div className="bento-icon bg-primary text-primary">
               <Users size={24} />
@@ -212,22 +288,20 @@ export default function DashboardView() {
         </div>
       </section>
 
-      {/* Upgrades Promo */}
       <section className="promo-banner">
         <div className="promo-shimmer"></div>
         <div className="promo-content">
           <div className="promo-text">
             <div className="vip-badge"><Award size={14} /> VIP Access</div>
-            <h4>Legends Lounge</h4>
-            <p>Upgrade to premium for Half-Time.</p>
+            <h4>{vipPerk?.title || 'No live perk'}</h4>
+            <p>{vipPerk?.description || 'Create a dashboard perk in Supabase to feature it here.'}</p>
           </div>
-          <motion.button whileTap={{ scale: 0.95 }} className="promo-btn" onClick={() => showToast('VIP Upgrade — available at Gate 4 Concierge!')}>
-            <Fingerprint size={16} /> Unlock
+          <motion.button whileTap={{ scale: 0.95 }} className="promo-btn" onClick={handlePerkUnlock}>
+            <Fingerprint size={16} /> {vipPerk?.cta_label || 'Unlock'}
           </motion.button>
         </div>
       </section>
 
-      {/* Transport & Departure */}
       <section className="transport-section">
         <div className="section-header-compact">
           <h3 className="section-title">Transport to {homeLocation ? homeLocation : 'Home'}</h3>
@@ -236,27 +310,23 @@ export default function DashboardView() {
           </div>
         </div>
         <div className="transport-list">
-          <div className="transport-item glass-panel">
-            <div className="bg-icon train-bg"><Train size={18} /></div>
-            <div className="trans-info">
-              <span className="trans-mode">{homeLocation ? `Metro towards ${homeLocation}` : 'Ahmedabad Metro (Purple Line)'}</span>
-              <span className="trans-status text-accent-success">On Time • 2 min walk</span>
+          {transportOptions.length > 0 ? transportOptions.map((option) => (
+            <div key={option.id} className="transport-item glass-panel">
+              <div className={`bg-icon ${option.mode === 'metro' ? 'train-bg' : 'car-bg'}`}>
+                {option.mode === 'metro' ? <Train size={18} /> : <Car size={18} />}
+              </div>
+              <div className="trans-info">
+                <span className="trans-mode">{option.title}</span>
+                <span className={`trans-status ${option.mode === 'metro' ? 'text-accent-success' : 'text-accent-warning'}`}>{option.subtitle}</span>
+              </div>
+              <div className="trans-time">{option.eta_min}m</div>
             </div>
-            <div className="trans-time">{transportTimes.metro}m</div>
-          </div>
-          
-          <div className="transport-item glass-panel">
-            <div className="bg-icon car-bg"><Car size={18} /></div>
-            <div className="trans-info">
-              <span className="trans-mode">{homeLocation ? `Rideshare to ${homeLocation}` : 'Ola/Uber Zone B'}</span>
-              <span className="trans-status text-accent-warning">1.5x Surge • Moderate wait</span>
-            </div>
-            <div className="trans-time">{transportTimes.car}m</div>
-          </div>
+          )) : (
+            <div className="empty-state-p">No transport data is configured for this venue.</div>
+          )}
         </div>
       </section>
 
-      {/* Dashboard Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div

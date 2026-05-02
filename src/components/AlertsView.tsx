@@ -1,28 +1,26 @@
 import { AlertTriangle, MapPin, Footprints, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { FALLBACK_ALERTS } from '../constants/fallbackData';
 import './AlertsView.css';
 
 export default function AlertsView() {
   const { navigateTo, alerts: globalAlerts } = useApp();
-  const alerts = globalAlerts.length > 0 ? globalAlerts : FALLBACK_ALERTS;
+  const [now, setNow] = useState(() => Date.now());
+  const alerts = globalAlerts;
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
-  // Handle both Firestore Timestamps and plain ISO strings
-  const getTimeAgo = (createdAt: any) => {
-    let ms: number;
+  const getTimeAgo = (createdAt?: string) => {
     if (!createdAt) return 'Active';
-    if (typeof createdAt === 'string') {
-      ms = new Date(createdAt).getTime();
-    } else if (createdAt?.toMillis) {
-      ms = createdAt.toMillis();
-    } else if (createdAt?.seconds) {
-      ms = createdAt.seconds * 1000;
-    } else {
+    const ms = new Date(createdAt).getTime();
+    if (Number.isNaN(ms)) {
       return 'Active';
     }
-    const diff = Math.floor((Date.now() - ms) / 60000);
+    const diff = Math.floor((now - ms) / 60000);
     if (diff <= 0) return 'Just now';
     if (diff < 60) return `${diff}m ago`;
     return `${Math.floor(diff / 60)}h ago`;
@@ -36,7 +34,7 @@ export default function AlertsView() {
       </div>
 
       <div className="alerts-feed">
-        {alerts.map((alert, idx) => (
+        {alerts.length > 0 ? alerts.map((alert, idx) => (
           <motion.div 
             key={alert.id || idx}
             initial={{ opacity: 0, y: 10 }}
@@ -70,7 +68,9 @@ export default function AlertsView() {
               </div>
             )}
           </motion.div>
-        ))}
+        )) : (
+          <div className="empty-state-p">No live alerts have been published for this stadium.</div>
+        )}
       </div>
     </div>
   );

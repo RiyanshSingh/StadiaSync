@@ -1,19 +1,34 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Scan, ArrowRight, CheckCircle2, Ticket, MapPin, Zap, Keyboard, ChevronLeft, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../contexts/AppContext';
 import { supabase } from '../lib/supabase';
 import './EntryView.css';
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Verification failed. Please try again.';
+}
+
+interface QueueStatusRow {
+  id: string;
+  waitMin: number | null;
+}
+
 export default function EntryView({ onEnter, onBack }: { onEnter: () => void, onBack?: () => void }) {
-  const { setGuestTicketData, isCheckingAuth, session } = useApp() as any; // Cast as any for simplicity if types aren't perfect yet
+  const { setGuestTicketData, setIsGuest, setUserTicket, isCheckingAuth, isSupabaseEnabled, matchData, session } = useApp();
   const [step, setStep] = useState<'landing' | 'scanning' | 'manual' | 'result'>('landing');
   const [scanProgress, setScanProgress] = useState(0);
   const [scanned, setScanned] = useState(false); // true when coming from QR scan flow
   
-  // Fast-track authenticated users to manual entry
+  // Fast-track authenticated users to manual entry — only once on mount, not on every re-render
+  const hasAutoRedirected = useRef(false);
   useEffect(() => {
-    if (!isCheckingAuth && session) {
+    if (!isCheckingAuth && session && !hasAutoRedirected.current) {
+      hasAutoRedirected.current = true;
       setStep('manual');
     }
   }, [isCheckingAuth, session]);
@@ -115,62 +130,72 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
         gate: finalGate,
         row: ticketData.row,
         seat: ticketData.seat,
+        date: matchData?.date,
+        time: matchData?.time,
+        ticket_id: `STS-${Date.now().toString().slice(-8)}`,
       };
 
-      setGuestTicketData(userTicket);
+      setUserTicket(userTicket);
 
       if (!user) {
-        // Guest — skip Firestore write, just proceed
+        setGuestTicketData(userTicket);
+        setIsGuest(true);
+        setRecommendedGate(finalGate || 'Gate 4');
+        setLiveWait(finalGate ? 6 : 4);
         setStep('result');
-        setLoading(false);
         return;
       }
-      await supabase.from('user_tickets').insert({
-        ...userTicket,
-        uid: user.id,
-        gate_note: `${finalGate} has minimum wait time.`,
-        timestamp: new Date().toISOString()
-      });
+      setGuestTicketData(null);
+      setIsGuest(false);
 
-      // Recommended gate logic: pick a random gate that is NOT the user's gate if possible
-      // This simulates a "low crowd" recommendation
-      let recGate = '';
-      if (currentStadium && currentStadium.gates.length > 0) {
-        const otherGates = currentStadium.gates.filter(g => g !== finalGate);
-        recGate = otherGates.length > 0 
-          ? otherGates[Math.floor(Math.random() * otherGates.length)]
-          : currentStadium.gates[0];
-      } else {
-        recGate = finalGate || 'Gate 4';
-      }
-      setRecommendedGate(recGate);
+      if (supabase && isSupabaseEnabled) {
+        const { error } = await supabase.from('user_tickets').insert({
+          ...userTicket,
+          uid: user.id,
+          gate_note: `Use ${finalGate} for your assigned entry.`,
+          timestamp: new Date().toISOString()
+        });
 
-      // Fetch live wait time for the result screen (Securely)
-      const gateId = recGate.toLowerCase().replace(/\s+/g, '-');
-      try {
-        const { data: gateStatus } = await supabase
-          .from('queue_status')
-          .select('waitMin')
-          .eq('id', gateId)
-          .single();
-        
-        if (gateStatus) {
-          setLiveWait(gateStatus.waitMin);
-        } else {
-          // Simulation: If no real data, recommended gate always has low wait (2-5 min)
-          setLiveWait(Math.floor(Math.random() * 4) + 2);
+        if (error) {
+          throw error;
         }
-      } catch (e) {
-        setLiveWait(Math.floor(Math.random() * 4) + 2);
       }
 
+      let recGate = finalGate || 'Gate 4';
+      let waitTime = finalGate ? 6 : 4;
+
+      if (supabase && isSupabaseEnabled && currentStadium?.gates.length) {
+        const normalizedGateIds = currentStadium.gates.map((gate) => gate.toLowerCase().replace(/\s+/g, '-'));
+        const { data } = await supabase.from('queue_status').select('id, waitMin');
+        const queueRows = (data as QueueStatusRow[] | null) ?? [];
+        const matchingRows = queueRows.filter((row) => normalizedGateIds.includes(row.id));
+
+        if (matchingRows.length > 0) {
+          const bestGate = matchingRows.reduce((best, row) => {
+            if ((row.waitMin ?? Number.POSITIVE_INFINITY) < (best.waitMin ?? Number.POSITIVE_INFINITY)) {
+              return row;
+            }
+
+            return best;
+          });
+
+          const matchedGate = currentStadium.gates.find((gate) => gate.toLowerCase().replace(/\s+/g, '-') === bestGate.id);
+          if (matchedGate) {
+            recGate = matchedGate;
+            waitTime = bestGate.waitMin ?? waitTime;
+          }
+        }
+      }
+
+      setRecommendedGate(recGate);
+      setLiveWait(waitTime);
       setStep('result');
-    } catch (err: any) {
-      console.error('Entry error:', err?.code, err?.message);
-      if (err?.code === 'permission-denied') {
+    } catch (error: unknown) {
+      console.error('Entry error:', error);
+      if (error instanceof Error && error.message.toLowerCase().includes('permission')) {
         setError('Access denied. Please sign in and try again.');
       } else {
-        setError(err.message || 'Verification failed. Please try again.');
+        setError(getErrorMessage(error));
       }
     } finally {
       setLoading(false);
@@ -179,14 +204,16 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
 
   return (
     <div className="entry-layout">
-      {onBack && step === 'landing' && (
-        <button 
-          onClick={onBack}
-          className="entry-cancel-btn"
-        >
-          <ChevronLeft size={18} /> Cancel
-        </button>
-      )}
+      <div className="entry-top-bar">
+        {onBack && step === 'landing' && (
+          <button 
+            onClick={onBack}
+            className="entry-cancel-btn"
+          >
+            <ChevronLeft size={18} /> Cancel
+          </button>
+        )}
+      </div>
 
       <AnimatePresence mode="wait">
         {step === 'landing' && (
@@ -249,12 +276,13 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
                 animate={{ opacity: 1, y: 0 }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  background: 'rgba(52,199,89,0.12)', border: '1px solid rgba(52,199,89,0.3)',
-                  borderRadius: 12, padding: '10px 14px', marginBottom: 8,
-                  fontSize: 13, color: 'var(--accent-success)', fontWeight: 600
+                  background: '#ECFDF5', border: '3px solid #10B981',
+                  borderRadius: 12, padding: '12px 16px', marginBottom: 12,
+                  fontSize: 14, color: '#065F46', fontWeight: 800,
+                  boxShadow: '4px 4px 0 0 #000', width: '100%'
                 }}
               >
-                <CheckCircle2 size={16} /> Ticket scanned! Please verify your details below.
+                <CheckCircle2 size={18} /> Ticket scanned! Please verify your details below.
               </motion.div>
             )}
             
@@ -418,8 +446,8 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
             </div>
             
             <div className="scan-status">
-              <h3>Analyzing Ticket & Location...</h3>
-              <p className="scan-note">Simulation active: Camera access requested</p>
+              <h3>Reading Ticket Data...</h3>
+              <p className="scan-note">This is a preview scan. Confirm your seat details on the next screen before entering.</p>
               <div className="progress-bar-bg">
                 <motion.div 
                   className="progress-bar-fill" 
@@ -454,9 +482,8 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
             <div className="gate-recommendation premium-card-glow">
               <div className="gate-card-header">
                 <div className="ticket-identity-badge">
-                  {ticketData.stadium === 'Other' ? ticketData.customStadium : ticketData.stadium}
-                  <span className="separator">•</span>
-                  {ticketData.block === 'Other' ? ticketData.customBlock : ticketData.block}
+                  <div className="stadium-name">{ticketData.stadium === 'Other' ? ticketData.customStadium : ticketData.stadium}</div>
+                  <div className="block-name">{ticketData.block === 'Other' ? ticketData.customBlock : ticketData.block}</div>
                 </div>
                 <span className="gate-label">Recommended Entry</span>
                 <motion.div 
@@ -482,17 +509,19 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
                 <div className="g-stat">
                   <div className="stat-icon-wrap"><MapPin size={14} /></div>
                   <div className="stat-content">
-                    <span className="label">Distance</span>
-                    <span className="val">
-                      {ticketData.gate?.includes('4') ? '120m' : '450m'}
-                    </span>
+                    <span className="label">Via Gate</span>
+                    <span className="val">{ticketData.gate === 'Other' ? ticketData.customGate || 'See Map' : ticketData.gate || 'See Map'}</span>
                   </div>
                 </div>
               </div>
               
               <div className="gate-warning-banner">
                 <div className="warning-dot"></div>
-                <span>Avoid Gate 3 (15m security delay)</span>
+                <span>
+                  {recommendedGate && recommendedGate !== ticketData.gate
+                    ? `Fastest live route is ${recommendedGate}.`
+                    : 'Use your assigned gate for the smoothest entry.'}
+                </span>
               </div>
             </div>
 

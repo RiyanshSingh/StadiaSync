@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Home, Map as MapIcon, Coffee, Ticket, User, Activity } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Home, Map as MapIcon, Coffee, Ticket, User, Activity, Bell } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { supabase } from './lib/supabase';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { AppContext, type OrderNotification, type UserTicket, type MatchData } from './contexts/AppContext';
+import type { RealtimeChannel, User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase, isSupabaseEnabled } from './lib/supabase';
+import { ensureUserProfile, type UserProfileRow } from './lib/appData';
+import {
+  AppContext,
+  type AlertData,
+  type AppTab,
+  type MatchData,
+  type OrderNotification,
+  type UserTicket,
+} from './contexts/AppContext';
 import './App.css';
 
-// Import our views
 import DashboardView from './components/DashboardView';
 import MapView from './components/MapView';
 import FoodView from './components/FoodView';
@@ -16,413 +23,568 @@ import ProfileView from './components/ProfileView';
 import AlertsView from './components/AlertsView';
 import QueueView from './components/QueueView';
 import AuthView from './components/AuthView';
+import AdminView from './components/AdminView';
 
+const VALID_TABS: AppTab[] = ['home', 'map', 'food', 'tickets', 'queues', 'alerts', 'profile', 'admin'];
 
-console.log('[App.tsx] Module loaded');
+function getStoredTab(): AppTab {
+  const storedTab = localStorage.getItem('last_active_tab');
+  return VALID_TABS.includes(storedTab as AppTab) ? (storedTab as AppTab) : 'home';
+}
 
 function App() {
-  console.log('[App.tsx] Rendering component...');
-  const [hasEntered, setHasEntered] = useState(() => {
-    return localStorage.getItem('has_entered') === 'true';
-  });
-  // Persist active tab across refreshes
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('last_active_tab') || 'home';
-  });
-  const [isLightMode] = useState(false);
-
-  // Auth State — typed properly
+  const [hasEntered, setHasEntered] = useState(() => localStorage.getItem('has_entered') === 'true');
+  const [activeTab, setActiveTab] = useState<AppTab>(getStoredTab);
   const [session, setSession] = useState<SupabaseUser | null>(null);
-  const [isGuest, setIsGuest] = useState(() => {
-    return localStorage.getItem('isGuest') === 'true';
-  });
-  const [guestTicketData, setGuestTicketData] = useState<any>(() => {
+  const [isGuest, setIsGuest] = useState(false);
+  const tabSyncTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [guestTicketData, setGuestTicketData] = useState<UserTicket | null>(() => {
     const saved = localStorage.getItem('guest_ticket_data');
     try {
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      console.error('[App] Failed to parse guest ticket data:', e);
+      return saved ? (JSON.parse(saved) as UserTicket) : null;
+    } catch (error) {
+      console.error('[App] Failed to parse guest ticket data:', error);
       return null;
     }
   });
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(isSupabaseEnabled);
   const [userTicket, setUserTicket] = useState<UserTicket | null>(null);
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [homeLocation, setHomeLocation] = useState<string | null>(null);
-  const [alerts, setAlerts] = useState<any[]>([]);
-
-  // Unread alerts badge
+  const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [unreadAlerts, setUnreadAlerts] = useState(0);
   const [orderNotification, setOrderNotification] = useState<OrderNotification | null>(null);
 
-  // Request browser push notification permission on login
   const requestPushPermission = () => {
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
+      void Notification.requestPermission();
     }
   };
 
   const showOrderNotification = (order: OrderNotification) => {
     setOrderNotification(order);
-    // Also fire a browser push notification if permitted
+
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('Order Placed! 🎉', {
-        body: `${order.items.map(i => `${i.qty}x ${i.name}`).join(', ')} — ₹${order.total}`,
-        icon: '/vite.svg',
+      new Notification('Order Placed!', {
+        body: `${order.items.map((item) => `${item.qty}x ${item.name}`).join(', ')} - Rs ${order.total}`,
+        icon: '/favicon.svg',
       });
     }
-    setTimeout(() => setOrderNotification(null), 6000);
+
+    window.setTimeout(() => setOrderNotification(null), 6000);
   };
 
-  // Persist guest state
-  useEffect(() => {
-    localStorage.setItem('isGuest', isGuest ? 'true' : 'false');
-  }, [isGuest]);
-
-  // Persist ticket data
   useEffect(() => {
     if (guestTicketData) {
       localStorage.setItem('guest_ticket_data', JSON.stringify(guestTicketData));
-    } else {
-      localStorage.removeItem('guest_ticket_data');
+      return;
     }
+
+    localStorage.removeItem('guest_ticket_data');
   }, [guestTicketData]);
 
   useEffect(() => {
-    let matchChannel: any = null;
-    let ticketChannel: any = null;
-    let userChannel: any = null;
+    const client = supabase;
+    if (!isSupabaseEnabled || !client) {
+      return;
+    }
 
-    const setupListeners = async (user: SupabaseUser | null) => {
-      // 1. Global Match Config Listener
-      const { data: initialMatch } = await supabase
-        .from('stadium_config')
-        .select('*')
-        .eq('id', 'current_match')
-        .single();
-      
-      if (initialMatch) setMatchData(initialMatch as MatchData);
+    let isMounted = true;
 
-      matchChannel = supabase
-        .channel('stadium_config_changes')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'stadium_config', filter: 'id=eq.current_match' }, (payload) => {
-          setMatchData(payload.new as MatchData);
-        })
-        .subscribe();
+    const syncSession = (user: SupabaseUser | null) => {
+      if (!isMounted) {
+        return;
+      }
+
+      setSession(user);
+      setIsCheckingAuth(false);
+      setIsGuest(Boolean(user?.is_anonymous));
 
       if (user) {
-        setIsGuest(false);
-        requestPushPermission();
-
-        // 2. User Ticket Listener
-        const { data: initialTickets } = await supabase
-          .from('user_tickets')
-          .select('*')
-          .eq('uid', user.id);
-        
-        if (initialTickets && initialTickets.length > 0) {
-          setUserTicket(initialTickets[0] as UserTicket);
-        } else {
-          setUserTicket(null);
-        }
-
-        ticketChannel = supabase
-          .channel('user_tickets_changes')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'user_tickets', filter: `uid=eq.${user.id}` }, async () => {
-             const { data } = await supabase
-              .from('user_tickets')
-              .select('*')
-              .eq('uid', user.id);
-            setUserTicket(data && data.length > 0 ? data[data.length - 1] as UserTicket : null);
-          })
-          .subscribe();
-
-        // 3. User Document (Home Location)
-        const { data: userData } = await supabase
-          .from('users')
-          .select('homeLocation')
-          .eq('id', user.id)
-          .single();
-        
-        if (userData?.homeLocation) {
-          setHomeLocation(userData.homeLocation);
-        }
-
-        userChannel = supabase
-          .channel('user_changes')
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${user.id}` }, (payload) => {
-            if (payload.new.homeLocation) {
-              setHomeLocation(payload.new.homeLocation);
-            }
-          })
-          .subscribe();
-      } else {
-        setUserTicket(null);
-        setHomeLocation(null);
+        setGuestTicketData(null);
       }
     };
 
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user || null;
-      setSession(user);
-      setupListeners(user);
-      setIsCheckingAuth(false);
+    client.auth.getSession().then(({ data }) => {
+      syncSession(data.session?.user ?? null);
     });
 
-    // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user || null;
-      setSession(user);
-      setupListeners(user);
-      setIsCheckingAuth(false);
+    const {
+      data: { subscription },
+    } = client.auth.onAuthStateChange((_event, currentSession) => {
+      syncSession(currentSession?.user ?? null);
     });
 
     return () => {
-      authSubscription.unsubscribe();
-      if (matchChannel) supabase.removeChannel(matchChannel);
-      if (ticketChannel) supabase.removeChannel(ticketChannel);
-      if (userChannel) supabase.removeChannel(userChannel);
+      isMounted = false;
+      subscription.unsubscribe();
     };
   }, []);
 
-  // Sync guest ticket data to the global userTicket state if no auth user
   useEffect(() => {
-    if (!session && isGuest && guestTicketData) {
-      setUserTicket(guestTicketData);
+    const client = supabase;
+    if (!isSupabaseEnabled || !client) {
+      return;
     }
-  }, [session, isGuest, guestTicketData]);
+
+    let isCancelled = false;
+    let matchChannel: RealtimeChannel | null = null;
+    let ticketChannel: RealtimeChannel | null = null;
+    let userChannel: RealtimeChannel | null = null;
+
+    const loadAppData = async () => {
+      const { data: currentMatch } = await client
+        .from('stadium_config')
+        .select('*')
+        .eq('id', 'current_match')
+        .maybeSingle();
+
+      if (!isCancelled) {
+        setMatchData((currentMatch as MatchData | null) ?? null);
+      }
+
+      matchChannel = client
+        .channel('stadium_config_changes')
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'stadium_config', filter: 'id=eq.current_match' },
+          (payload) => {
+            setMatchData(payload.new as MatchData);
+          },
+        )
+        .subscribe();
+
+      if (!session) {
+        // Don't wipe userTicket here — initial session is null before auth resolves.
+        // handleSignOut() already sets userTicket to null on explicit sign-out.
+        if (!isCancelled) {
+          setHomeLocation(null);
+        }
+        return;
+      }
+
+      await ensureUserProfile(client, session);
+      requestPushPermission();
+
+      const loadLatestTicket = async () => {
+        const { data } = await client
+          .from('user_tickets')
+          .select('*')
+          .eq('uid', session.id)
+          .order('timestamp', { ascending: false })
+          .limit(1);
+
+        if (!isCancelled) {
+          setUserTicket((data?.[0] as UserTicket | undefined) ?? null);
+        }
+      };
+
+      const loadHomeLocation = async () => {
+        const { data } = await client
+          .from('users')
+          .select('*')
+          .eq('id', session.id)
+          .maybeSingle();
+
+        if (!isCancelled) {
+          const profile = data as UserProfileRow | null;
+          setHomeLocation(profile?.homeLocation ?? null);
+          setHasEntered(Boolean(profile?.onboarded));
+          if (profile?.last_active_tab && VALID_TABS.includes(profile.last_active_tab as AppTab)) {
+            setActiveTab(profile.last_active_tab as AppTab);
+          }
+        }
+      };
+
+      await Promise.all([loadLatestTicket(), loadHomeLocation()]);
+
+      ticketChannel = client
+        .channel(`user_tickets_changes:${session.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'user_tickets', filter: `uid=eq.${session.id}` },
+          () => {
+            void loadLatestTicket();
+          },
+        )
+        .subscribe();
+
+      userChannel = client
+        .channel(`user_changes:${session.id}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${session.id}` },
+          (payload) => {
+            const profile = payload.new as UserProfileRow;
+            setHomeLocation(profile.homeLocation ?? null);
+            setHasEntered(Boolean(profile.onboarded));
+          },
+        )
+        .subscribe();
+    };
+
+    void loadAppData();
+
+    return () => {
+      isCancelled = true;
+      if (matchChannel) {
+        void client.removeChannel(matchChannel);
+      }
+      if (ticketChannel) {
+        void client.removeChannel(ticketChannel);
+      }
+      if (userChannel) {
+        void client.removeChannel(userChannel);
+      }
+    };
+  }, [session]);
 
   useEffect(() => {
-    if (isLightMode) {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
+    const client = supabase;
+    if (!isSupabaseEnabled || !client) {
+      return;
     }
-  }, [isLightMode]);
 
-  // Live alert listener (shared globally)
-  useEffect(() => {
+    let isCancelled = false;
+
     const setupAlerts = async () => {
-      const { data } = await supabase
+      const { data } = await client
         .from('intel_alerts')
         .select('*')
         .order('created_at', { ascending: false });
-      
-      if (data) {
-        setAlerts(data);
-        const lastRead = localStorage.getItem('last_read_alert_time') || '0';
-        const newAlerts = data.filter(d => {
-          const createdAt = (d as any).created_at;
-          const time = new Date(createdAt).getTime();
-          return time > parseInt(lastRead);
-        });
-        setUnreadAlerts(newAlerts.length);
+
+      if (!data || isCancelled) {
+        return;
       }
+
+      const nextAlerts = data as AlertData[];
+      setAlerts(nextAlerts);
+
+      const lastRead = Number(localStorage.getItem('last_read_alert_time') || '0');
+      const newAlerts = nextAlerts.filter((alert) => {
+        if (!alert.created_at) {
+          return false;
+        }
+
+        return new Date(alert.created_at).getTime() > lastRead;
+      });
+
+      setUnreadAlerts(newAlerts.length);
     };
 
-    setupAlerts();
+    void setupAlerts();
 
-    const channel = supabase
+    const channel = client
       .channel('intel_alerts_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'intel_alerts' }, () => {
-        setupAlerts();
+        void setupAlerts();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      isCancelled = true;
+      void client.removeChannel(channel);
     };
   }, []);
 
-  // Clear badge when user opens alerts tab
-  const handleTabChange = (tab: string) => {
+  useEffect(() => {
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent instanceof HTMLElement) {
+      mainContent.scrollTop = 0;
+    }
+
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
+  const handleTabChange = (tab: AppTab) => {
     setActiveTab(tab);
+    localStorage.setItem('last_active_tab', tab);
+
     if (tab === 'alerts') {
       setUnreadAlerts(0);
       localStorage.setItem('last_read_alert_time', Date.now().toString());
     }
-    localStorage.setItem('last_active_tab', tab);
+
+    // Debounce DB sync — only write after 1.5s of no further tab changes
+    if (tabSyncTimeout.current) {
+      clearTimeout(tabSyncTimeout.current);
+    }
+    if (session && supabase) {
+      tabSyncTimeout.current = setTimeout(() => {
+        void supabase.from('users').upsert({
+          id: session.id,
+          last_active_tab: tab,
+          ...(tab === 'alerts' ? { last_alert_read_at: new Date().toISOString() } : {}),
+        });
+      }, 1500);
+    }
   };
 
-  // Ensure page opens from starting on tab change
-  useEffect(() => {
-    const mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-      mainContent.scrollTop = 0;
+  const handleGuestStart = async () => {
+    if (!supabase) {
+      return;
     }
-    window.scrollTo(0, 0);
-  }, [activeTab]);
+
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      throw error;
+    }
+  };
+
+  const handleSignOut = async () => {
+    setIsGuest(false);
+    setGuestTicketData(null);
+    setUserTicket(null);
+    setHasEntered(false);
+    localStorage.removeItem('has_entered');
+    localStorage.removeItem('last_active_tab');
+    localStorage.removeItem('last_read_alert_time');
+
+    const client = supabase;
+    if (client) {
+      await client.auth.signOut();
+    } else {
+      setSession(null);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'home':    return <DashboardView />;
-      case 'map':     return <MapView />;
-      case 'food':    return <FoodView />;
-      case 'tickets': return <TicketsView />;
-      case 'queues':  return <QueueView />;
-      case 'alerts':  return <AlertsView />;
-      case 'profile': return <ProfileView />;
-      default:        return <DashboardView />;
+      case 'home':
+        return <DashboardView />;
+      case 'map':
+        return <MapView />;
+      case 'food':
+        return <FoodView />;
+      case 'tickets':
+        return <TicketsView />;
+      case 'queues':
+        return <QueueView />;
+      case 'alerts':
+        return <AlertsView />;
+      case 'profile':
+        return <ProfileView />;
+      case 'admin':
+        return <AdminView />;
+      default:
+        return <DashboardView />;
     }
   };
 
-  if (isCheckingAuth) {
-    return (
-      <div className="app-layout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="intel-dot animate-pulse-glow" style={{ width: 16, height: 16 }} />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <AuthView />;
-  }
-
-  if (!hasEntered) {
-    return (
-      <EntryView 
-        onEnter={() => {
-          localStorage.setItem('has_entered', 'true');
-          setHasEntered(true);
-        }} 
-        onBack={() => {
-          setIsGuest(false);
-          if (session) {
-            supabase.auth.signOut();
-          }
-        }}
-      />
-    );
-  }
+  const showAuth = !session;
+  const showEntry = !showAuth && !hasEntered;
 
   return (
-    <AppContext.Provider value={{ 
-      navigateTo: handleTabChange, 
-      isGuest, 
-      guestTicketData, 
-      setGuestTicketData, 
-      userTicket, 
-      matchData, 
-      homeLocation, 
-      alerts,
-      unreadAlerts,
-      isCheckingAuth, 
-      session,
-      showOrderNotification, 
-      requestPushPermission 
-    }}>
-      <div className="app-layout">
-        {/* Universal Header */}
-        <header className="app-header">
-          <button className="icon-btn" style={{ background: 'var(--accent-secondary)' }} onClick={() => setActiveTab('home')}>
-            <Home size={24} />
-          </button>
-          <div className="header-title" onClick={() => setActiveTab('home')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-            <span style={{ fontSize: '28px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>STADIA SYNC</span>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '-4px' }}>MATCH DAY HUB</span>
-          </div>
-          <div className="header-actions">
-            <button className={`icon-btn ${activeTab === 'profile' ? 'active' : ''}`} style={{ background: 'var(--accent-warning)' }} onClick={() => handleTabChange('profile')}>
-              <User size={24} />
+    <AppContext.Provider
+      value={{
+        navigateTo: handleTabChange,
+        isGuest,
+        isSupabaseEnabled,
+        setIsGuest,
+        guestTicketData,
+        setGuestTicketData,
+        userTicket,
+        setUserTicket,
+        matchData,
+        homeLocation,
+        alerts,
+        unreadAlerts,
+        isCheckingAuth,
+        session,
+        showOrderNotification,
+        requestPushPermission,
+      }}
+    >
+      {isCheckingAuth ? (
+        <div className="app-layout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="intel-dot animate-pulse-glow" style={{ width: 16, height: 16 }} />
+        </div>
+      ) : showAuth ? (
+        <AuthView onContinueAsGuest={handleGuestStart} />
+      ) : showEntry ? (
+        <EntryView
+          onEnter={() => {
+            localStorage.setItem('has_entered', 'true');
+            setHasEntered(true);
+            if (session && supabase) {
+              void supabase.from('users').upsert({
+                id: session.id,
+                onboarded: true,
+              });
+            }
+          }}
+          onBack={() => {
+            void handleSignOut();
+          }}
+        />
+      ) : (
+        <div className="app-layout">
+          <header className="app-header">
+            <button
+              className="icon-btn"
+              style={{ background: 'var(--accent-secondary)' }}
+              onClick={() => handleTabChange('home')}
+            >
+              <Home size={24} />
             </button>
-          </div>
-        </header>
-
-        {/* Main Scrollable Area */}
-        <main className="main-content">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.2 }}
-              style={{ minHeight: '100%' }}
+            <div
+              className="header-title"
+              onClick={() => handleTabChange('home')}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
             >
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-
-        {/* Global Order Notification Popup */}
-        <AnimatePresence>
-          {orderNotification && (
-            <motion.div
-              initial={{ opacity: 0, y: 80, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 80, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-              style={{
-                position: 'fixed', bottom: 110, left: 16, right: 16, zIndex: 9999,
-                background: 'linear-gradient(135deg, rgba(16,22,36,0.98), rgba(30,40,60,0.98))',
-                border: '1px solid rgba(99,102,241,0.5)',
-                borderRadius: 20, padding: '18px 20px',
-                boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.2)',
-                backdropFilter: 'blur(24px)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-                <div style={{ fontSize: 32 }}>🎉</div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#fff' }}>Order Confirmed!</p>
-                  <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
-                    {orderNotification.items.map(i => `${i.qty}× ${i.name}`).join(', ')}
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>₹{orderNotification.total}.00</span>
-                    {orderNotification.seat && orderNotification.seat !== '--' && (
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: 20 }}>
-                        📍 {orderNotification.seat}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', background: 'rgba(99,102,241,0.15)', padding: '2px 8px', borderRadius: 20 }}>
-                      {orderNotification.deliveryMode === 'delivery' ? '🛵 Delivery' : '🏃 Pickup'}
-                    </span>
-                  </div>
-                </div>
-                <button onClick={() => setOrderNotification(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 4 }}>✕</button>
-              </div>
-              <motion.div
-                initial={{ width: '100%' }}
-                animate={{ width: '0%' }}
-                transition={{ duration: 6, ease: 'linear' }}
-                style={{ height: 2, background: 'linear-gradient(90deg, #6366f1, #a78bfa)', borderRadius: 2, marginTop: 14 }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Bottom Navigation */}
-        <nav className="bottom-nav">
-          {[
-            { id: 'home',    icon: Home,     label: 'Home' },
-            { id: 'map',     icon: MapIcon,  label: 'Map' },
-            { id: 'queues',  icon: Activity, label: 'Queues' },
-            { id: 'food',    icon: Coffee,   label: 'Food' },
-            { id: 'tickets', icon: Ticket,   label: 'Tickets' },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleTabChange(tab.id)}
+              <span style={{ fontSize: '28px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                STADIA SYNC
+              </span>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: 'var(--text-tertiary)',
+                  textTransform: 'uppercase',
+                  marginTop: '-4px',
+                }}
               >
-                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="nav-label">{tab.label}</span>
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-indicator"
-                    className="nav-indicator"
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  />
-                )}
+                MATCH DAY HUB
+              </span>
+            </div>
+            <div className="header-actions">
+              <button
+                className={`icon-btn ${activeTab === 'alerts' ? 'active' : ''}`}
+                style={{ background: 'var(--accent-tertiary)' }}
+                onClick={() => handleTabChange('alerts')}
+              >
+                <Bell size={22} />
+                {unreadAlerts > 0 && <span className="badge-count">{unreadAlerts > 9 ? '9+' : unreadAlerts}</span>}
               </button>
-            );
-          })}
-        </nav>
-      </div>
+              <button
+                className={`icon-btn ${activeTab === 'profile' ? 'active' : ''}`}
+                style={{ background: 'var(--accent-warning)' }}
+                onClick={() => handleTabChange('profile')}
+              >
+                <User size={24} />
+              </button>
+            </div>
+          </header>
+
+          <main className="main-content">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.2 }}
+                style={{ minHeight: '100%' }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+
+          <AnimatePresence>
+            {orderNotification && (
+              <motion.div
+                initial={{ opacity: 0, y: 80, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 80, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+                style={{
+                  position: 'fixed',
+                  bottom: 110,
+                  left: 16,
+                  right: 16,
+                  zIndex: 9999,
+                  background: 'linear-gradient(135deg, rgba(16,22,36,0.98), rgba(30,40,60,0.98))',
+                  border: '1px solid rgba(99,102,241,0.5)',
+                  borderRadius: 20,
+                  padding: '18px 20px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.2)',
+                  backdropFilter: 'blur(24px)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <div style={{ fontSize: 32 }}>🎉</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#fff' }}>Order Confirmed!</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
+                      {orderNotification.items.map((item) => `${item.qty}x ${item.name}`).join(', ')}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>Rs {orderNotification.total}.00</span>
+                      {orderNotification.seat && orderNotification.seat !== '--' && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'rgba(255,255,255,0.5)',
+                            background: 'rgba(255,255,255,0.08)',
+                            padding: '2px 8px',
+                            borderRadius: 20,
+                          }}
+                        >
+                          Seat {orderNotification.seat}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: 'rgba(255,255,255,0.5)',
+                          background: 'rgba(99,102,241,0.15)',
+                          padding: '2px 8px',
+                          borderRadius: 20,
+                        }}
+                      >
+                        {orderNotification.deliveryMode === 'delivery' ? 'Delivery' : 'Pickup'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setOrderNotification(null)}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 4 }}
+                  >
+                    X
+                  </button>
+                </div>
+                <motion.div
+                  initial={{ width: '100%' }}
+                  animate={{ width: '0%' }}
+                  transition={{ duration: 6, ease: 'linear' }}
+                  style={{ height: 2, background: 'linear-gradient(90deg, #6366f1, #a78bfa)', borderRadius: 2, marginTop: 14 }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <nav className="bottom-nav">
+            {[
+              { id: 'home' as const, icon: Home, label: 'Home' },
+              { id: 'map' as const, icon: MapIcon, label: 'Map' },
+              { id: 'queues' as const, icon: Activity, label: 'Queues' },
+              { id: 'food' as const, icon: Coffee, label: 'Food' },
+              { id: 'tickets' as const, icon: Ticket, label: 'Tickets' },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  className={`nav-item ${isActive ? 'active' : ''}`}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="nav-label">{tab.label}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-indicator"
+                      className="nav-indicator"
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </AppContext.Provider>
   );
 }

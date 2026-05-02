@@ -5,9 +5,17 @@ import { supabase } from '../lib/supabase';
 import { useApp } from '../contexts/AppContext';
 import './AdminView.css';
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'unknown error';
+}
+
 export default function AdminView() {
   const [toast, setToast] = useState('');
-  const { navigateTo, session } = useApp();
+  const { isSupabaseEnabled, navigateTo, session } = useApp();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -16,6 +24,11 @@ export default function AdminView() {
 
   // Write an intel alert to Firestore
   const triggerAlert = async (type: string, title: string, desc: string) => {
+    if (!supabase || !isSupabaseEnabled) {
+      showToast('Supabase is not configured, so admin updates are disabled.');
+      return;
+    }
+
     try {
       await supabase.from('intel_alerts').insert({
         type,
@@ -23,14 +36,19 @@ export default function AdminView() {
         description: desc,
         created_at: new Date().toISOString()
       });
-      showToast(`✅ Alert sent: ${title}`);
-    } catch (e: any) {
-      showToast(`❌ Failed: ${e?.message || 'unknown error'}`);
+      showToast(`Alert sent: ${title}`);
+    } catch (error: unknown) {
+      showToast(`Failed: ${getErrorMessage(error)}`);
     }
   };
 
   // Write crowd level to crowd_levels and facilities collections
   const setCrowdLevel = async (zone: string, level: 'Low' | 'Med' | 'High') => {
+    if (!supabase || !isSupabaseEnabled) {
+      showToast('Supabase is not configured, so crowd updates are disabled.');
+      return;
+    }
+
     const zoneId = zone.toLowerCase().replace(/\s+/g, '-');
     const statusMap = {
       'Low': 'Clear',
@@ -60,14 +78,19 @@ export default function AdminView() {
         updatedAt: new Date().toISOString()
       });
 
-      showToast(`✅ ${zone} status updated to ${level}`);
-    } catch (e: any) {
-      showToast(`❌ Failed: ${e?.message || 'unknown error'}`);
+      showToast(`${zone} status updated to ${level}`);
+    } catch (error: unknown) {
+      showToast(`Failed: ${getErrorMessage(error)}`);
     }
   };
 
   // Write queue wait time update
   const setQueueTime = async (name: string, minutes: number) => {
+    if (!supabase || !isSupabaseEnabled) {
+      showToast('Supabase is not configured, so queue updates are disabled.');
+      return;
+    }
+
     const id = name.toLowerCase().replace(/\s+/g, '-');
     try {
       await supabase.from('queue_status').upsert({
@@ -77,9 +100,9 @@ export default function AdminView() {
         status: minutes <= 5 ? 'Low Wait' : minutes <= 12 ? 'Medium Wait' : 'High Wait',
         updatedAt: new Date().toISOString()
       });
-      showToast(`✅ ${name} wait time set to ${minutes} min`);
-    } catch (e: any) {
-      showToast(`❌ Failed: ${e?.message || 'unknown error'}`);
+      showToast(`${name} wait time set to ${minutes} min`);
+    } catch (error: unknown) {
+      showToast(`Failed: ${getErrorMessage(error)}`);
     }
   };
 

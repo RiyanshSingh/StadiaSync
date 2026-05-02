@@ -1,29 +1,99 @@
-import { QrCode, Share, Download, MapPin, Calendar, Clock, CheckCircle2, ScanLine } from 'lucide-react';
+import { QrCode, Share, Download, MapPin, Calendar, Clock, CheckCircle2, ScanLine, CreditCard, ChevronRight, HelpCircle, Coffee, ShieldCheck, Target, Zap, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { createSupportRequest, createTicketActionRequest, type PerkCatalogRow } from '../lib/appData';
 import { useApp } from '../contexts/AppContext';
 import './TicketsView.css';
 
 export default function TicketsView() {
-  const { navigateTo, userTicket, guestTicketData } = useApp();
+  const { navigateTo, session, userTicket, guestTicketData, matchData } = useApp();
   const [toastMessage, setToastMessage] = useState('');
+  const [fallbackTicketId] = useState(() => `STS-${Date.now().toString().slice(-8)}`);
+  const [bannerPerk, setBannerPerk] = useState<PerkCatalogRow | null>(null);
+  const [ticketStatPerks, setTicketStatPerks] = useState<PerkCatalogRow[]>([]);
 
   const displayTicket = userTicket || guestTicketData;
   const ticketData = displayTicket || {
     block: '--',    row: '--',
     seat: '--',
     gate: '--',
-    date: '--',
-    time: '--',
+    date: matchData?.date || '--',
+    time: matchData?.time || '--',
     stadium: '--',
-    ticket_id: '8092-441-IPL'
+    ticket_id: fallbackTicketId
   };
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      return;
+    }
+
+    const loadTicketPerks = async () => {
+      const [bannerRes, statsRes] = await Promise.all([
+        client.from('perk_catalog').select('*').eq('status', 'active').eq('category', 'ticket_banner').limit(1),
+        client.from('perk_catalog').select('*').eq('status', 'active').eq('category', 'ticket_stat').limit(3),
+      ]);
+
+      setBannerPerk((bannerRes.data?.[0] as PerkCatalogRow | undefined) ?? null);
+      setTicketStatPerks((statsRes.data as PerkCatalogRow[] | null) ?? []);
+    };
+
+    void loadTicketPerks();
+  }, []);
 
   // Removed local listeners as they are now centralized in App.tsx
 
-  const handleAction = (message: string) => {
+  const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const submitTicketAction = async (actionType: 'wallet' | 'transfer' | 'sell') => {
+    if (!supabase || !session) {
+      showToast('A live session is required for ticket actions.');
+      return;
+    }
+
+    const { error } = await createTicketActionRequest(supabase, {
+      uid: session.id,
+      ticketId: ticketData.ticket_id || null,
+      actionType,
+      metadata: {
+        stadium: ticketData.stadium,
+        block: ticketData.block,
+        seat: ticketData.seat,
+      },
+    });
+
+    if (error) {
+      showToast(`${actionType} request failed: ${error.message}`);
+      return;
+    }
+
+    showToast(`${actionType} request saved to Supabase.`);
+  };
+
+  const requestSupport = async () => {
+    if (!supabase || !session) {
+      showToast('A live session is required to contact support.');
+      return;
+    }
+
+    const { error } = await createSupportRequest(supabase, {
+      uid: session.id,
+      category: 'stadium_help',
+      ticketId: ticketData.ticket_id || null,
+      message: `Support requested for ${ticketData.stadium}, gate ${ticketData.gate}.`,
+    });
+
+    if (error) {
+      showToast(`Support request failed: ${error.message}`);
+      return;
+    }
+
+    showToast('Support request created.');
   };
 
   return (
@@ -127,17 +197,17 @@ export default function TicketsView() {
 
       {/* Actions */}
       <div className="ticket-actions">
-        <button className="action-btn-p primary-action-p" onClick={() => handleAction('Added to Apple Wallet!')}>
+        <button className="action-btn-p primary-action-p" onClick={() => void submitTicketAction('wallet')}>
           <CreditCard size={18} />
           <span>Add to Apple Wallet</span>
           <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.6 }} />
         </button>
         <div className="action-row">
-          <button className="action-btn-p secondary-action-p" onClick={() => handleAction('Initiating Transfer...')}>
+          <button className="action-btn-p secondary-action-p" onClick={() => void submitTicketAction('transfer')}>
             <Share size={16} />
             <span>Transfer</span>
           </button>
-          <button className="action-btn-p secondary-action-p" onClick={() => handleAction('Listing on Marketplace...')}>
+          <button className="action-btn-p secondary-action-p" onClick={() => void submitTicketAction('sell')}>
             <Download size={16} />
             <span>Sell</span>
           </button>
@@ -157,7 +227,7 @@ export default function TicketsView() {
             <ChevronRight size={16} className="text-tertiary" />
           </div>
 
-          <div className="util-card glass-panel" onClick={() => handleAction('Contacting Support...')}>
+          <div className="util-card glass-panel" onClick={() => void requestSupport()}>
             <div className="util-icon-circle yellow"><HelpCircle size={20} /></div>
             <div className="util-info">
               <h6>Stadium Help</h6>
@@ -181,26 +251,22 @@ export default function TicketsView() {
       <div className="loyalty-banner glass-panel-elevated">
         <div className="loyalty-content">
           <div className="loyalty-tag">PREMIUM MATCH PERK</div>
-          <h4>Complimentary Water Refill</h4>
-          <p className="text-secondary">Scan this ticket at any "Aqua Station" for free refills tonight.</p>
+          <h4>{bannerPerk?.title || 'No live ticket perk'}</h4>
+          <p className="text-secondary">{bannerPerk?.description || 'Create a ticket_banner perk in Supabase to feature it here.'}</p>
         </div>
         <div className="shield-bg"><ShieldCheck size={80} strokeWidth={1} /></div>
       </div>
 
       {/* Stats Pills */}
       <section className="ticket-stats-region">
-        <div className="stat-pill glass-panel">
-          <Target size={14} className="text-accent-secondary" />
-          <span>VIP Lounge Access</span>
-        </div>
-        <div className="stat-pill glass-panel">
-          <Zap size={14} className="text-accent-warning" />
-          <span>Priority Re-entry</span>
-        </div>
-        <div className="stat-pill glass-panel">
-          <Award size={14} className="text-accent-primary" />
-          <span>Gold Member</span>
-        </div>
+        {(ticketStatPerks.length > 0 ? ticketStatPerks : [
+          { id: 'fallback-1', title: 'Ticket perks pending', description: '', cta_label: '', category: 'ticket_stat', status: 'active' },
+        ]).map((perk, index) => (
+          <div key={perk.id} className="stat-pill glass-panel">
+            {index === 0 ? <Target size={14} className="text-accent-secondary" /> : index === 1 ? <Zap size={14} className="text-accent-warning" /> : <Award size={14} className="text-accent-primary" />}
+            <span>{perk.title}</span>
+          </div>
+        ))}
       </section>
 
       {/* Toast */}

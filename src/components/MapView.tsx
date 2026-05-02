@@ -2,16 +2,32 @@ import { MapPin, Coffee, DoorOpen, Users, Navigation, Layers, Plus, Minus, Cross
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { type MapLayoutRow } from '../lib/appData';
 import { useApp } from '../contexts/AppContext';
 import './MapView.css';
+
+interface Poi {
+  id: number | string;
+  type: 'food' | 'exit' | 'restroom';
+  label: string;
+  top: string;
+  left: string;
+  x: number;
+  y: number;
+  stadium?: string | null;
+  eta_min?: number | null;
+  distance_m?: number | null;
+  congestion_note?: string | null;
+}
 
 export default function MapView() {
   const { userTicket, guestTicketData } = useApp();
   const displayTicket = userTicket || guestTicketData;
   const [isNavigating, setIsNavigating] = useState(false);
-  const [activeDestination, setActiveDestination] = useState<any>(null);
+  const [activeDestination, setActiveDestination] = useState<Poi | null>(null);
 
-  const [pois, setPois] = useState<any[]>([]);
+  const [pois, setPois] = useState<Poi[]>([]);
+  const [layout, setLayout] = useState<MapLayoutRow | null>(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showExplore, setShowExplore] = useState(true);
@@ -23,48 +39,45 @@ export default function MapView() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const venueConfigs: Record<string, { stands: string[], logo?: string }> = {
-    "Narendra Modi Stadium, Ahmedabad": {
-      stands: ["Presidential Stand", "Adani Pavilion", "North Stand", "South Stand"]
-    },
-    "Wankhede Stadium, Mumbai": {
-      stands: ["Sachin Tendulkar Stand", "Sunil Gavaskar Stand", "Garware Pavilion", "North Stand"]
-    },
-    "Eden Gardens, Kolkata": {
-      stands: ["Sourav Ganguly Stand", "Pankaj Roy Stand", "B.N. Dutt Stand", "Jagmohan Dalmiya Stand"]
-    },
-    "M. Chinnaswamy Stadium, Bangalore": {
-      stands: ["Pavilion Stand", "Grand Stand", "P1 Stand", "E-Executive"]
-    }
+  const currentVenue = {
+    stands: [
+      layout?.north_label || 'North Stand',
+      layout?.south_label || 'South Stand',
+      layout?.east_label || 'East Stand',
+      layout?.west_label || 'West Stand',
+    ],
   };
-
-  const defaultVenue = { stands: ["Main Stand", "Opposite Stand", "East Wing", "West Wing"] };
-  const currentVenue = displayTicket ? (venueConfigs[displayTicket.stadium] || defaultVenue) : defaultVenue;
   
   // Interactive Map States
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
-    const fetchPOIs = async () => {
-      const fallbackPOIs = [
-        { id: 1, type: 'food', label: 'Vada Pav Stall', top: '25%', left: '20%', x: 20, y: 25 },
-        { id: 2, type: 'food', label: 'Stadium Chai', top: '25%', left: '65%', x: 65, y: 25 },
-        { id: 3, type: 'exit', label: 'Gate Exit', top: '55%', left: '15%', x: 15, y: 55 },
-        { id: 4, type: 'exit', label: 'Main Entrance', top: '75%', left: '80%', x: 80, y: 75 },
-        { id: 5, type: 'restroom', label: 'Washrooms', top: '85%', left: '40%', x: 40, y: 85 }
-      ];
+    const fetchMapData = async () => {
+      if (!supabase) {
+        setPois([]);
+        setLayout(null);
+        return;
+      }
 
       try {
-        const { data } = await supabase.from('map_pois').select('*');
-        // Use fallback if Supabase returned nothing
-        setPois(data && data.length > 0 ? data : fallbackPOIs);
-      } catch (err) {
-        // On any error (permission-denied etc.) show fallback POIs
-        setPois(fallbackPOIs);
+        const currentStadium = displayTicket?.stadium ?? null;
+        const [poisRes, layoutRes] = await Promise.all([
+          supabase.from('map_pois').select('*'),
+          currentStadium
+            ? supabase.from('stadium_layouts').select('*').eq('stadium', currentStadium).maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+
+        const allPois = (poisRes.data as Poi[] | null) ?? [];
+        setPois(allPois.filter((poi) => !currentStadium || !poi.stadium || poi.stadium === currentStadium));
+        setLayout((layoutRes.data as MapLayoutRow | null) ?? null);
+      } catch {
+        setPois([]);
+        setLayout(null);
       }
     };
-    fetchPOIs();
-  }, []);
+    void fetchMapData();
+  }, [displayTicket?.stadium]);
 
   // Filter Logic
   const filteredPOIs = pois.filter((poi) => {
@@ -79,7 +92,7 @@ export default function MapView() {
   const resetZoom = () => setZoom(1);
 
   // Trigger Routing
-  const startNavigation = (poi: any) => {
+  const startNavigation = (poi: Poi) => {
     setActiveDestination(poi);
     setIsNavigating(true);
   };
@@ -95,7 +108,9 @@ export default function MapView() {
     if (navigator.share) {
       try {
         await navigator.share({ title: 'StadiaSync ETA', text });
-      } catch {}
+      } catch {
+        showToast('Share canceled.');
+      }
     } else {
       try {
         await navigator.clipboard.writeText(text);
@@ -275,13 +290,13 @@ export default function MapView() {
                 <div className="sheet-handle"></div>
                 <div className="sheet-nav-mode">
                   <div className="nav-eta-header">
-                    <h2 className="eta-title">2 min</h2>
-                    <span className="eta-distance">180m • Arrive Instantly</span>
+                    <h2 className="eta-title">{activeDestination.eta_min ?? 2} min</h2>
+                    <span className="eta-distance">{activeDestination.distance_m ?? 180}m • Approximate Route</span>
                   </div>
                   
                   <div className="nav-warning">
                     <Users size={16} className="text-accent-warning" />
-                    <span>Slight congestion near {activeDestination.label}.</span>
+                    <span>{activeDestination.congestion_note || `Slight congestion near ${activeDestination.label}.`}</span>
                   </div>
 
                   <div className="nav-actions">
@@ -310,7 +325,9 @@ export default function MapView() {
                 </button>
                 <h3 className="section-title" style={{ paddingRight: '40px' }}>Explore Arena</h3>
                 <p className="text-secondary" style={{ fontSize: '14px', margin: '8px 0 0' }}>
-                  Drag the map or click the <b>[+]</b> zoom buttons. Tap on any map icon (like Food or Exits) to start routing!
+                  {filteredPOIs.length > 0
+                    ? 'Drag the map or click the [+] zoom buttons. Tap on any map icon to start routing.'
+                    : 'No live POIs are configured for this stadium yet. Add rows in Supabase to render the venue map.'}
                 </p>
               </div>
             )}
