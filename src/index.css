@@ -86,12 +86,22 @@
 
 body {
   font-family: var(--font-body);
-  background-color: var(--bg-primary);
+  background-color: var(--bg-tertiary); /* Soft gray background for desktop */
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   overflow-x: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  body {
+    background-color: var(--bg-primary); /* Original white-ish bg on mobile */
+    display: block;
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {
