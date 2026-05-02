@@ -1,6 +1,5 @@
 import { AlertTriangle, MapPin, Footprints, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { FALLBACK_ALERTS } from '../constants/fallbackData';
 import './AlertsView.css';

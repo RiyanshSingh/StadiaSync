@@ -1,4 +1,4 @@
-import { Search, MapPin, Clock, Plus, Minus, Flame, Sparkles, Navigation, CheckCircle2, ShoppingBag, X, ArrowRight, Star, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Clock, Plus, Minus, Flame, Sparkles, Navigation, CheckCircle2, ShoppingBag, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
@@ -19,7 +19,6 @@ export default function FoodView() {
   // Cart/Checkout States
   const [cart, setCart] = useState<any[]>([]);
   const [showCart, setShowCart] = useState(false);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [orderStatus, setOrderStatus] = useState<'idle' | 'processing' | 'success'>('idle');
 
   const categories = ['Featured', 'Snacks', 'Meals', 'Drinks', 'Desserts'];

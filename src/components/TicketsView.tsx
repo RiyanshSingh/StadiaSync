@@ -1,6 +1,6 @@
-import { QrCode, Share, Download, MapPin, Calendar, Clock, CreditCard, CheckCircle2, ChevronRight, Zap, Target, Award, Coffee, HelpCircle, ShieldCheck, ScanLine } from 'lucide-react';
+import { QrCode, Share, Download, MapPin, Calendar, Clock, CheckCircle2, ScanLine } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import './TicketsView.css';
 
@@ -15,7 +15,7 @@ export default function TicketsView() {
     gate: '--',
     date: '--',
     time: '--',
-    venue: '--',
+    stadium: '--',
     ticket_id: '8092-441-IPL'
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Map as MapIcon, Coffee, Ticket, Bell, User, Sun, Moon, Activity } from 'lucide-react';
+import { Home, Map as MapIcon, Coffee, Ticket, User, Activity } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -13,7 +13,6 @@ import FoodView from './components/FoodView';
 import TicketsView from './components/TicketsView';
 import EntryView from './components/EntryView';
 import ProfileView from './components/ProfileView';
-import AdminView from './components/AdminView';
 import AlertsView from './components/AlertsView';
 import QueueView from './components/QueueView';
 import AuthView from './components/AuthView';
@@ -30,7 +29,7 @@ function App() {
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('last_active_tab') || 'home';
   });
-  const [isLightMode, setIsLightMode] = useState(false);
+  const [isLightMode] = useState(false);
 
   // Auth State — typed properly
   const [session, setSession] = useState<SupabaseUser | null>(null);
@@ -163,7 +162,7 @@ function App() {
       }
     };
 
-    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user || null;
       setSession(user);
       setupListeners(user);

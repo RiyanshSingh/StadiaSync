@@ -6,7 +6,7 @@ import { useApp } from '../contexts/AppContext';
 import './MapView.css';
 
 export default function MapView() {
-  const { userTicket, guestTicketData, session } = useApp();
+  const { userTicket, guestTicketData } = useApp();
   const displayTicket = userTicket || guestTicketData;
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeDestination, setActiveDestination] = useState<any>(null);

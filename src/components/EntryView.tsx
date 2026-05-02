@@ -179,7 +179,14 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
 
   return (
     <div className="entry-layout">
-
+      {onBack && step === 'landing' && (
+        <button 
+          onClick={onBack}
+          className="entry-cancel-btn"
+        >
+          <ChevronLeft size={18} /> Cancel
+        </button>
+      )}
 
       <AnimatePresence mode="wait">
         {step === 'landing' && (
@@ -190,17 +197,8 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            {onBack && (
-              <button 
-                onClick={onBack}
-                style={{ position: 'absolute', top: 24, left: 24, background: 'none', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, cursor: 'pointer', zIndex: 10 }}
-              >
-                <ChevronLeft size={18} /> Cancel
-              </button>
-            )}
-            
-            <div className="branding">
-              <h1>StadiaSync</h1>
+            <div className="branding landing-branding">
+              <h1 className="main-title">Stadia<span className="text-accent-primary">Sync</span></h1>
               <p>The smartest way to experience game day.</p>
             </div>
             

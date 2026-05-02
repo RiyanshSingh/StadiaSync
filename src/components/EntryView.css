@@ -6,10 +6,32 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  overflow-y: auto; /* Changed from hidden to allow scrolling */
+  overflow-y: auto;
   background: var(--bg-primary);
   z-index: 100;
-  padding: 20px 0; /* Add some padding for scrolling */
+  padding: 40px 20px;
+}
+
+.entry-cancel-btn {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 1000;
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+
+.entry-cancel-btn:hover {
+  color: var(--text-primary);
 }
 
 
@@ -32,20 +54,28 @@
   margin-bottom: -8px;
 }
 
+.landing-branding {
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
 .branding h1 {
-  font-size: 44px;
+  font-size: 48px;
   font-family: var(--font-heading);
-  letter-spacing: -1px;
-  margin-bottom: 8px;
+  letter-spacing: -2px;
+  margin-bottom: 12px;
   color: var(--text-primary);
   text-transform: uppercase;
   font-weight: 900;
+  line-height: 1;
 }
 
 .branding p {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
+  max-width: 280px;
+  margin: 0 auto;
 }
 
 .feature-list {

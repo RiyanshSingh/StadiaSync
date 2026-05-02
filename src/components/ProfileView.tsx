@@ -1,5 +1,5 @@
-import { LogOut, Settings, Award, History, Heart, ShieldCheck, Mail, Phone, ChevronRight, User, ExternalLink, MapPin, Edit3, Save, Ticket } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, Settings, Award, History, Heart, ShieldCheck, Mail, Phone, ChevronRight, User, ExternalLink, MapPin, Edit3, Save, Camera, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useApp } from '../contexts/AppContext';
@@ -8,7 +8,7 @@ import './ProfileView.css';
 export default function ProfileView() {
   const [toast, setToast] = useState('');
   const [stats, setStats] = useState({ matches: 0, orders: 0, points: 2400 });
-  const [phoneNumber, setPhoneNumber] = useState('+91 ••••• ••422');
+  const [phoneNumber] = useState('+91 ••••• ••422');
   const [homeLocation, setHomeLocation] = useState('Fetching...');
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [tempLocation, setTempLocation] = useState('');
@@ -34,7 +34,7 @@ export default function ProfileView() {
     "Sawai Mansingh Stadium, Jaipur"
   ]);
 
-  const { navigateTo, session: user } = useApp();
+  const { userTicket, guestTicketData, session: user } = useApp();
 
   useEffect(() => {
     if (!user) return;
