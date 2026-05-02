@@ -371,6 +371,34 @@ function App() {
     }
   };
 
+  const getPageTitle = (tab: AppTab) => {
+    switch (tab) {
+      case 'home': return 'STADIA SYNC';
+      case 'map': return 'STADIUM MAP';
+      case 'food': return 'FOOD & BEVERAGE';
+      case 'tickets': return 'MY TICKETS';
+      case 'queues': return 'LIVE QUEUES';
+      case 'alerts': return 'ALERTS & INTEL';
+      case 'profile': return 'MY PROFILE';
+      case 'admin': return 'COMMAND CENTER';
+      default: return 'STADIA SYNC';
+    }
+  };
+
+  const getPageSubtitle = (tab: AppTab) => {
+    switch (tab) {
+      case 'home': return 'MATCH DAY HUB';
+      case 'map': return 'NAVIGATE ZONES';
+      case 'food': return 'EXPRESS ORDER';
+      case 'tickets': return 'ACCESS PASSES';
+      case 'queues': return 'WAIT TIMES';
+      case 'alerts': return 'STAY UPDATED';
+      case 'profile': return 'ACCOUNT SETTINGS';
+      case 'admin': return 'STAFF ONLY';
+      default: return 'MATCH DAY HUB';
+    }
+  };
+
   const showAuth = !session;
   const showEntry = !showAuth && !hasEntered;
 
@@ -421,11 +449,11 @@ function App() {
         <div className="app-layout">
           <header className="app-header">
             <button
-              className="icon-btn"
-              style={{ background: 'var(--accent-secondary)' }}
-              onClick={() => handleTabChange('home')}
+              className={`icon-btn ${activeTab === 'profile' ? 'active' : ''}`}
+              style={{ background: 'var(--accent-warning)' }}
+              onClick={() => handleTabChange('profile')}
             >
-              <Home size={24} />
+              <User size={24} />
             </button>
             <div
               className="header-title"
@@ -433,7 +461,7 @@ function App() {
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
             >
               <span style={{ fontSize: '28px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-                STADIA SYNC
+                {getPageTitle(activeTab)}
               </span>
               <span
                 style={{
@@ -444,7 +472,7 @@ function App() {
                   marginTop: '-4px',
                 }}
               >
-                MATCH DAY HUB
+                {getPageSubtitle(activeTab)}
               </span>
             </div>
             <div className="header-actions">
@@ -455,13 +483,6 @@ function App() {
               >
                 <Bell size={22} />
                 {unreadAlerts > 0 && <span className="badge-count">{unreadAlerts > 9 ? '9+' : unreadAlerts}</span>}
-              </button>
-              <button
-                className={`icon-btn ${activeTab === 'profile' ? 'active' : ''}`}
-                style={{ background: 'var(--accent-warning)' }}
-                onClick={() => handleTabChange('profile')}
-              >
-                <User size={24} />
               </button>
             </div>
           </header>

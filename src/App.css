@@ -14,6 +14,8 @@
   .app-layout {
     height: 725px;
     max-height: 100vh;
+    width: 406px;
+    min-width: 406px;
     border-radius: 32px; /* to look like a phone */
     border: 8px solid #000;
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
