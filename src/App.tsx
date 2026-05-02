@@ -428,9 +428,12 @@ function App() {
           <div className="intel-dot animate-pulse-glow" style={{ width: 16, height: 16 }} />
         </div>
       ) : showAuth ? (
-        <AuthView onContinueAsGuest={handleGuestStart} />
+        <div className="app-layout">
+          <AuthView onContinueAsGuest={handleGuestStart} />
+        </div>
       ) : showEntry ? (
-        <EntryView
+        <div className="app-layout">
+          <EntryView
           onEnter={() => {
             localStorage.setItem('has_entered', 'true');
             setHasEntered(true);
@@ -445,6 +448,7 @@ function App() {
             void handleSignOut();
           }}
         />
+        </div>
       ) : (
         <div className="app-layout">
           <header className="app-header">
