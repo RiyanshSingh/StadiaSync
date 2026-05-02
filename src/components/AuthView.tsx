@@ -60,7 +60,7 @@ export default function AuthView() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="auth-container glass-panel-elevated"
+        className="auth-container"
       >
         <div className="auth-header">
           <div className="auth-brand">
@@ -72,10 +72,10 @@ export default function AuthView() {
 
         <form onSubmit={handleAuth} className="auth-form">
           <div className="input-group">
-            <Mail size={18} className="input-icon" />
+            <label className="input-label">EMAIL</label>
             <input 
               type="email" 
-              placeholder="Email address" 
+              placeholder="you@example.com" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -83,15 +83,21 @@ export default function AuthView() {
           </div>
 
           <div className="input-group">
-            <Lock size={18} className="input-icon" />
+            <label className="input-label">PASSWORD</label>
             <input 
               type="password" 
-              placeholder="Password" 
+              placeholder="••••••••" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
+
+          {!isSignUp && (
+            <div className="forgot-link">
+              <a href="#">FORGOT PASSWORD?</a>
+            </div>
+          )}
 
           <AnimatePresence>
             {error && (
@@ -107,7 +113,7 @@ export default function AuthView() {
           </AnimatePresence>
 
           <button type="submit" className="primary-auth-btn" disabled={loading}>
-            {loading ? 'Processing...' : isSignUp ? <><UserPlus size={18} /> Join Now</> : <><LogIn size={18} /> Sign In</>}
+            {loading ? 'Processing...' : isSignUp ? 'Join Now' : 'Log In'}
           </button>
         </form>
 

@@ -119,8 +119,7 @@ function App() {
         const { data: initialTickets } = await supabase
           .from('user_tickets')
           .select('*')
-          .eq('uid', user.id)
-          .order('timestamp', { ascending: false });
+          .eq('uid', user.id);
         
         if (initialTickets && initialTickets.length > 0) {
           setUserTicket(initialTickets[0] as UserTicket);
@@ -134,9 +133,8 @@ function App() {
              const { data } = await supabase
               .from('user_tickets')
               .select('*')
-              .eq('uid', user.id)
-              .order('timestamp', { ascending: false });
-            setUserTicket(data && data.length > 0 ? data[0] as UserTicket : null);
+              .eq('uid', user.id);
+            setUserTicket(data && data.length > 0 ? data[data.length - 1] as UserTicket : null);
           })
           .subscribe();
 
@@ -317,21 +315,16 @@ function App() {
       <div className="app-layout">
         {/* Universal Header */}
         <header className="app-header">
-          <div className="header-title" onClick={() => setActiveTab('home')}>
-            <span>Stadia</span>Sync
+          <button className="icon-btn" style={{ background: 'var(--accent-secondary)' }} onClick={() => setActiveTab('home')}>
+            <Home size={24} />
+          </button>
+          <div className="header-title" onClick={() => setActiveTab('home')} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+            <span style={{ fontSize: '28px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>STADIA SYNC</span>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', marginTop: '-4px' }}>MATCH DAY HUB</span>
           </div>
           <div className="header-actions">
-            <button className="icon-btn" onClick={() => setIsLightMode(!isLightMode)}>
-              {isLightMode ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
-            <button className={`icon-btn ${activeTab === 'alerts' ? 'text-accent-primary' : ''}`} onClick={() => handleTabChange('alerts')}>
-              <Bell size={20} />
-              {unreadAlerts > 0 && (
-                <span className="badge badge-count">{unreadAlerts > 9 ? '9+' : unreadAlerts}</span>
-              )}
-            </button>
-            <button className={`icon-btn ${activeTab === 'profile' ? 'text-accent-warning' : ''}`} onClick={() => handleTabChange('profile')}>
-              <User size={20} />
+            <button className={`icon-btn ${activeTab === 'profile' ? 'active' : ''}`} style={{ background: 'var(--accent-warning)' }} onClick={() => handleTabChange('profile')}>
+              <User size={24} />
             </button>
           </div>
         </header>

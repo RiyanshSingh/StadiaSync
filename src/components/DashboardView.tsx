@@ -4,14 +4,17 @@ import { Activity, Zap, MapPin, Car, Train, Users, Award, ChevronRight, PlayCirc
 import { supabase } from '../lib/supabase';
 import { useApp } from '../contexts/AppContext';
 import { FALLBACK_ALERTS, FALLBACK_FACILITIES } from '../constants/fallbackData';
+import SquadTrackerModal from './SquadTrackerModal';
 import './DashboardView.css';
 
 export default function DashboardView() {
-  const { navigateTo, userTicket, matchData, homeLocation, alerts: globalAlerts } = useApp();
+  const { navigateTo, userTicket, guestTicketData, matchData, homeLocation, alerts: globalAlerts } = useApp();
+  const displayTicket = userTicket || guestTicketData;
   const [loading, setLoading] = useState(true);
   const [facilities, setFacilities] = useState<any[]>([]);
   const alerts = globalAlerts.length > 0 ? globalAlerts.slice(0, 2) : FALLBACK_ALERTS.slice(0, 2);
   const [transportTimes, setTransportTimes] = useState({ metro: 4, car: 12 });
+  const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
 
   // Toast for stub actions
   const [toast, setToast] = useState('');
@@ -83,7 +86,7 @@ export default function DashboardView() {
         <div className="ap-body">
           <div className="match-title">
             <span className="team" style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {userTicket?.stadium || matchData?.stadium || 'Loading Stadium...'}
+              {displayTicket?.stadium || matchData?.stadium || 'Loading Stadium...'}
             </span>
           </div>
         </div>
@@ -91,26 +94,26 @@ export default function DashboardView() {
         <div className="ap-details">
           <div className="ap-seat">
              <span className="label">Block</span>
-             <span className="val">{userTicket?.block || '--'}</span>
+             <span className="val">{displayTicket?.block || '--'}</span>
           </div>
           <div className="ap-seat">
              <span className="label">Row</span>
-             <span className="val">{userTicket?.row || '--'}</span>
+             <span className="val">{displayTicket?.row || '--'}</span>
           </div>
           <div className="ap-seat">
              <span className="label">Seat</span>
-             <span className="val">{userTicket?.seat || '--'}</span>
+             <span className="val">{displayTicket?.seat || '--'}</span>
           </div>
           <div className="ap-seat" style={{ flex: 1, minWidth: 0 }}>
              <span className="label">Gate</span>
-             <span className="val text-accent-primary">{userTicket?.gate || '--'}</span>
+             <span className="val text-accent-primary">{displayTicket?.gate || '--'}</span>
           </div>
         </div>
 
         <div className="ap-footer">
           <div className="gate-note">
             <Zap size={14} className="text-accent-success" />
-            <span>{userTicket?.gate ? `${userTicket.gate} has minimum wait time.` : 'Checking gate status...'}</span>
+            <span>{displayTicket?.gate ? `${displayTicket.gate} has minimum wait time.` : 'Checking gate status...'}</span>
           </div>
           <button className="nav-seat-btn" onClick={() => navigateTo('map')}>
             <MapPin size={16} /> Navigate to Seat
@@ -187,7 +190,7 @@ export default function DashboardView() {
             <div className="bento-info">
               <span className="feature-title">Your Seat</span>
               <span className="feature-desc">
-                {userTicket?.block || 'Block --'}, Row {userTicket?.row || '--'} • 4 min walk
+                {displayTicket?.block || 'Block --'}, Row {displayTicket?.row || '--'} • 4 min walk
               </span>
             </div>
             <div className="bento-action"><ChevronRight size={18} /></div>
@@ -200,7 +203,7 @@ export default function DashboardView() {
             <span className="feature-title mt-top">Watch<br/>Replays</span>
           </motion.button>
           
-          <motion.button whileTap={{ scale: 0.95 }} className="bento-box square glass-panel" onClick={() => showToast('Squad Tracker — invite friends coming soon!')}>
+          <motion.button whileTap={{ scale: 0.95 }} className="bento-box square glass-panel" onClick={() => setIsSquadModalOpen(true)}>
              <div className="bento-icon bg-primary text-primary">
               <Users size={24} />
             </div>
@@ -263,9 +266,9 @@ export default function DashboardView() {
             style={{
               position: 'fixed', bottom: '90px', left: '16px', right: '16px',
               zIndex: 200, display: 'flex', alignItems: 'center', gap: '12px',
-              background: 'var(--bg-elevated)', border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md)', padding: '14px 16px',
-              boxShadow: 'var(--shadow-md)', maxWidth: '480px', margin: '0 auto'
+              background: 'var(--bg-elevated)', border: '3px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)', padding: '16px',
+              boxShadow: 'var(--shadow-sm)', maxWidth: '480px', margin: '0 auto'
             }}
           >
             <CheckCircle2 size={20} className="text-accent-success" />
@@ -273,6 +276,8 @@ export default function DashboardView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SquadTrackerModal isOpen={isSquadModalOpen} onClose={() => setIsSquadModalOpen(false)} />
     </div>
   );
 }

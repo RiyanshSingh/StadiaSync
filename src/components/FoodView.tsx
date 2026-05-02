@@ -6,7 +6,8 @@ import { useApp } from '../contexts/AppContext';
 import './FoodView.css';
 
 export default function FoodView() {
-  const { showOrderNotification, userTicket, session } = useApp();
+  const { showOrderNotification, userTicket, guestTicketData, session } = useApp();
+  const displayTicket = userTicket || guestTicketData;
   const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('delivery');
   const [activeCategory, setActiveCategory] = useState('Featured');
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,6 +104,28 @@ export default function FoodView() {
     initMenu();
   }, []);
 
+  const getItemImage = (item: any) => {
+    if (!item) return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=500&q=60';
+    const name = item.name.toLowerCase();
+    
+    // Check for hardcoded local images first
+    if (name.includes('vada pav')) return '/images/mumbai_vada_pav.png';
+    if (name.includes('gulab jamun')) return '/images/gulab_jamun.png';
+    if (name.includes('maharaja thali')) return '/images/maharaja_thali.png';
+    
+    // Check if the item has a valid remote image URL
+    if (item.image && item.image !== 'null' && item.image !== 'undefined' && item.image.trim() !== '') {
+      return item.image;
+    }
+    
+    // Fallback to the hardcoded fallbackMenu images if available
+    const fallback = fallbackMenu.find(f => f.name.toLowerCase() === name || f.id === item.id);
+    if (fallback && fallback.image) return fallback.image;
+    
+    // Final generic fallback
+    return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=500&q=60';
+  };
+
   const addToCart = (item: any) => {
     setCart(prev => {
       const existing = prev.find(i => i.id === item.id);
@@ -135,7 +158,7 @@ export default function FoodView() {
           items: cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
           total: cartTotal,
           deliveryMode,
-          seatInfo: userTicket ? { stadium: userTicket.stadium, block: userTicket.block, gate: userTicket.gate } : null,
+          seatInfo: displayTicket ? { stadium: displayTicket.stadium, block: displayTicket.block, gate: displayTicket.gate } : null,
           status: 'pending',
           createdAt: new Date().toISOString()
         });
@@ -152,7 +175,7 @@ export default function FoodView() {
       items: cart.map(i => ({ name: i.name, qty: i.qty })),
       total: cartTotal,
       deliveryMode,
-      seat: userTicket ? `${userTicket.block || ''} • Row ${userTicket.row || '--'} • Seat ${userTicket.seat || '--'}` : '--',
+      seat: displayTicket ? `${displayTicket.block || ''} • Row ${displayTicket.row || '--'} • Seat ${displayTicket.seat || '--'}` : '--',
       timestamp: Date.now(),
     });
     setTimeout(() => {
@@ -170,7 +193,7 @@ export default function FoodView() {
 
   // Delivery destination string — safe null handling
   const deliveryLabel = deliveryMode === 'delivery'
-    ? `Delivering to ${userTicket?.block ?? 'Your Block'} • Row ${userTicket?.row ?? '--'} • Seat ${userTicket?.seat ?? '--'}`
+    ? `Delivering to ${displayTicket?.block ?? 'Your Block'} • Row ${displayTicket?.row ?? '--'} • Seat ${displayTicket?.seat ?? '--'}`
     : 'Pickup at Gate 4 Concierge';
 
   return (
@@ -225,7 +248,7 @@ export default function FoodView() {
               <section className="food-section">
                 <h3 className="section-title"><Flame size={18} className="text-accent-tertiary" /> Trending Now</h3>
                 <motion.div whileTap={{ scale: 0.98 }} className="featured-card">
-                  <div className="featured-img" style={{ backgroundImage: `url('${featuredItem.image}')` }}>
+                  <div className="featured-img" style={{ backgroundImage: `url('${getItemImage(featuredItem)}')` }}>
                     <div className="card-gradient"></div>
                     <div className="featured-meta">
                       <div className="eta-badge shadow-glow"><Clock size={12} /> {featuredItem.wait_time}</div>
@@ -257,7 +280,7 @@ export default function FoodView() {
                   <div className="menu-grid">
                     {visible.map((item) => (
                       <motion.div key={item.id} whileTap={{ scale: 0.96 }} className="menu-card glass-panel">
-                        <div className="menu-img" style={{ backgroundImage: `url('${item.image || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=500&q=60'}')` }}></div>
+                        <div className="menu-img" style={{ backgroundImage: `url('${getItemImage(item)}')` }}></div>
                         <div className="menu-details">
                           <h5>{item.name}</h5>
                           <span className="cal-text">{item.calories || 450} cal</span>
@@ -279,7 +302,7 @@ export default function FoodView() {
             <div className="menu-grid full-grid">
               {applySearch(menuItems.filter(i => i.category === activeCategory)).map((item) => (
                 <motion.div key={item.id} whileTap={{ scale: 0.96 }} className="menu-card glass-panel">
-                  <div className="menu-img" style={{ backgroundImage: `url('${item.image || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=500&q=60'}')` }}></div>
+                  <div className="menu-img" style={{ backgroundImage: `url('${getItemImage(item)}')` }}></div>
                   <div className="menu-details">
                     <h5>{item.name}</h5>
                     <span className="cal-text">{item.calories || 450} cal</span>

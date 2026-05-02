@@ -1,0 +1,204 @@
+.squad-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.squad-modal-content {
+  width: 100%;
+  max-width: 500px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border: 3px solid var(--border-color);
+  border-bottom: none;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.squad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.squad-header h3 {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.close-btn {
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+}
+
+.close-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.squad-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.squad-member {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.member-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--accent-primary);
+  border: 3px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.member-loc {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.member-status {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+}
+
+.status-active { background: var(--accent-success); }
+.status-away { background: var(--accent-warning); }
+
+.squad-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.squad-action-btn {
+  flex: 1;
+  padding: 14px;
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+
+.squad-action-btn.primary {
+  background: var(--accent-secondary);
+}
+
+.squad-action-btn.secondary {
+  background: var(--bg-elevated);
+}
+
+.squad-action-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.squad-view-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: center;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.squad-view-body p {
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.invite-code {
+  font-size: 36px;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  padding: 20px 40px;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  letter-spacing: 4px;
+  box-shadow: var(--shadow-sm);
+}
+
+.join-input {
+  width: 100%;
+  font-size: 24px;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.join-input:focus {
+  border-color: var(--accent-primary);
+}

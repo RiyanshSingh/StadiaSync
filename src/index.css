@@ -2,30 +2,31 @@
 
 :root {
   /* Core Colors */
-  --bg-primary: #0F1219;
-  --bg-secondary: #161A23;
-  --bg-tertiary: #1E232F;
-  --bg-elevated: #242938;
+  --bg-primary: #FCFBF4;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #EAEAEC;
+  --bg-elevated: #FFFFFF;
 
-  /* Accents - Cyberpunk/Sporty vibe */
-  --accent-primary: #254DF4; /* Vivid Blue from image */
-  --accent-secondary: #00F0FF; /* Cyan */
-  --accent-tertiary: #FF5A5F; /* Coral Red */
-  --accent-success: #00D364; /* Neon Green */
-  --accent-warning: #FFB800; /* Yellow */
+  /* Accents - Neobrutalist Vote Sathi Theme */
+  --accent-primary: #C6A2FF; /* Purple */
+  --accent-secondary: #BAFFA4; /* Light Green */
+  --accent-tertiary: #FFD424; /* Yellow */
+  --accent-success: #9CF0CC; /* Mint Green */
+  --accent-warning: #FFD424; /* Yellow */
+  --accent-pink: #F683B5; /* Pink */
 
   /* Text Colors */
-  --text-primary: #FFFFFF;
-  --text-secondary: #A0A5B4;
-  --text-tertiary: #6E7587;
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --text-tertiary: #555555;
 
-  /* Borders & Shadows */
-  --border-color: rgba(255, 255, 255, 0.03); /* Almost invisible borders */
-  --border-focus: rgba(37, 77, 244, 0.5);
+  /* Borders & Shadows (Neobrutalism) */
+  --border-color: #000000;
+  --border-focus: #000000;
   
-  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 20px rgba(37, 77, 244, 0.4);
+  --shadow-sm: 4px 4px 0px 0px #000000;
+  --shadow-md: 6px 6px 0px 0px #000000;
+  --shadow-glow: none;
 
   /* Fonts */
   --font-heading: 'Outfit', sans-serif;
@@ -34,7 +35,7 @@
   /* Layout */
   --radius-sm: 8px;
   --radius-md: 16px;
-  --radius-lg: 24px;
+  --radius-lg: 20px;
   --radius-full: 9999px;
   
   --spacing-1: 4px;
@@ -46,9 +47,9 @@
   --spacing-8: 48px;
 
   /* Premium Solid Mode Substitutes */
-  --glass-bg: #1E232F;
-  --glass-elevated: #242938;
-  --glass-border: rgba(255, 255, 255, 0.03);
+  --glass-bg: #FFFFFF;
+  --glass-elevated: #FFFFFF;
+  --glass-border: #000000;
 }
 
 :root.light {
@@ -95,8 +96,9 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
-  font-weight: 600;
+  font-weight: 800; /* Bolder font weight for headings */
   line-height: 1.2;
+  text-transform: uppercase; /* All caps for headings */
 }
 
 a {
@@ -119,16 +121,20 @@ ul {
 /* Premium Matte Panel Utilities (Replacing Glassmorphism) */
 .glass-panel {
   background: var(--bg-elevated);
-  border: none;
-  border-radius: var(--radius-lg); /* Larger softer corners */
-  box-shadow: var(--shadow-sm); /* Very subtle base drop shadow */
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-lg); 
+  box-shadow: var(--shadow-sm); 
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 .glass-panel-elevated {
   background: var(--glass-elevated);
-  border: none;
+  border: 3px solid var(--border-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 /* Animations */

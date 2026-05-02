@@ -18,6 +18,22 @@ export default function ProfileView() {
   const [ticketDocId, setTicketDocId] = useState<string | null>(null);
   const [ticketForm, setTicketForm] = useState({ stadium: '', block: '', row: '', seat: '', gate: '' });
 
+  const stadiumData: Record<string, { gates: string[], blocks: string[] }> = {
+    "Narendra Modi Stadium, Ahmedabad": { gates: [], blocks: [] },
+    "Wankhede Stadium, Mumbai": { gates: [], blocks: [] },
+    "Eden Gardens, Kolkata": { gates: [], blocks: [] },
+    "M. Chinnaswamy Stadium, Bangalore": { gates: [], blocks: [] },
+    "Arun Jaitley Stadium, Delhi": { gates: [], blocks: [] },
+    "M. A. Chidambaram Stadium, Chennai": { gates: [], blocks: [] }
+  };
+  const stadiums = Object.keys(stadiumData).concat([
+    "Rajiv Gandhi Intl. Stadium, Hyderabad",
+    "HPCA Stadium, Dharamshala",
+    "IS Bindra Stadium, Mohali",
+    "Ekana Stadium, Lucknow",
+    "Sawai Mansingh Stadium, Jaipur"
+  ]);
+
   const { navigateTo, session: user } = useApp();
 
   useEffect(() => {
@@ -57,9 +73,9 @@ export default function ProfileView() {
 
     // Fetch the latest ticket to prefill edit mode
     const fetchLatestTicket = async () => {
-      const { data } = await supabase.from('user_tickets').select('*').eq('uid', user.id).order('timestamp', { ascending: false }).limit(1);
+      const { data } = await supabase.from('user_tickets').select('*').eq('uid', user.id);
       if (data && data.length > 0) {
-        const latest = data[0];
+        const latest = data[data.length - 1];
         setTicketDocId(latest.id);
         setTicketForm({
           stadium: latest.stadium || '',
@@ -98,15 +114,23 @@ export default function ProfileView() {
   };
 
   const saveTicketDraft = async () => {
-    if (!user || !ticketDocId) return;
+    if (!user) return;
     try {
-      await supabase.from('user_tickets').update({
+      const payload = {
+        uid: user.id,
         stadium: ticketForm.stadium,
         block: ticketForm.block,
         row: ticketForm.row,
         seat: ticketForm.seat,
         gate: ticketForm.gate,
-      }).eq('id', ticketDocId);
+      };
+
+      if (ticketDocId) {
+        await supabase.from('user_tickets').update(payload).eq('id', ticketDocId);
+      } else {
+        await supabase.from('user_tickets').insert(payload);
+      }
+      
       setIsEditingTicket(false);
       showToast('Ticket completely updated!');
     } catch (e) {
@@ -133,6 +157,10 @@ export default function ProfileView() {
 
   return (
     <div className="profile-container">
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '24px' }}>
+        <h2 className="display-title">MY PROFILE</h2>
+        <p className="page-subtitle" style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '1px' }}>YOUR MATCH STATS</p>
+      </div>
       {/* Premium Header */}
       <div className="profile-header">
         <div className="profile-hero">
@@ -176,7 +204,7 @@ export default function ProfileView() {
               <h6>Email Address</h6>
               <p>{user?.email || 'Guest User'}</p>
             </div>
-            {user?.emailVerified && <ShieldCheck size={16} className="text-accent-success" />}
+            {user?.email_confirmed_at && <ShieldCheck size={16} className="text-accent-success" />}
           </div>
           
           <div className="list-item glass-panel">
@@ -233,7 +261,14 @@ export default function ProfileView() {
           {isEditingTicket && (
              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} style={{ overflow: 'hidden' }}>
                <div className="glass-panel" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <input className="manual-input" placeholder="Stadium" value={ticketForm.stadium} onChange={e => setTicketForm({...ticketForm, stadium: e.target.value})} />
+                  <select 
+                    className="manual-input" 
+                    value={ticketForm.stadium} 
+                    onChange={e => setTicketForm({...ticketForm, stadium: e.target.value})}
+                  >
+                    <option value="" disabled>Select Stadium</option>
+                    {stadiums.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <input className="manual-input" placeholder="Block/Section" value={ticketForm.block} onChange={e => setTicketForm({...ticketForm, block: e.target.value})} />
                     <input className="manual-input" placeholder="Gate" value={ticketForm.gate} onChange={e => setTicketForm({...ticketForm, gate: e.target.value})} />
@@ -242,8 +277,8 @@ export default function ProfileView() {
                     <input className="manual-input" placeholder="Row" value={ticketForm.row} onChange={e => setTicketForm({...ticketForm, row: e.target.value})} />
                     <input className="manual-input" placeholder="Seat" value={ticketForm.seat} onChange={e => setTicketForm({...ticketForm, seat: e.target.value})} />
                   </div>
-                  <button className="primary-action-p" onClick={saveTicketDraft} style={{ border: 'none', background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', padding: 12, borderRadius: 12, fontWeight: 600, marginTop: 4 }}>
-                    Save Ticket Changes
+                  <button className="primary-action-p" onClick={saveTicketDraft} style={{ border: 'none', padding: 16, borderRadius: 'var(--radius-md)', fontWeight: 800, marginTop: 4 }}>
+                    SAVE TICKET CHANGES
                   </button>
                </div>
              </motion.div>

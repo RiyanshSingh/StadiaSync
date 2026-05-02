@@ -22,12 +22,12 @@
 
 /* ── Main Ticket Card ─────────────────────────────────────── */
 .digital-ticket {
-  border-radius: 28px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
-  box-shadow:
-    0 24px 48px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: var(--shadow-sm);
+  border: 3px solid var(--border-color);
+  background: var(--bg-elevated);
 }
 
 /* Holographic shimmer sweep */
@@ -57,7 +57,8 @@
 .ticket-hero.simplified {
   position: relative;
   padding: 24px 24px 32px;
-  background: linear-gradient(160deg, #0d1523 0%, #1a1040 50%, #0f1e35 100%);
+  background: var(--accent-primary);
+  border-bottom: 3px solid var(--border-color);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -66,11 +67,11 @@
 
 .ticket-venue-title {
   font-family: var(--font-heading);
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.2;
-  color: white;
-  text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--text-primary);
+  text-transform: uppercase;
   margin-top: 8px;
   max-width: 90%;
 }
@@ -168,16 +169,26 @@
 
 /* ── Seat Info Section ────────────────────────────────────── */
 .ticket-seat-section {
-  background: linear-gradient(180deg, #111827 0%, #0f1523 100%);
+  background: var(--bg-elevated);
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  border-bottom: 3px solid var(--border-color);
+}
+
+.seat-info-top {
+  width: 100%;
+}
+
+.block-cell {
+  width: 100%;
+  margin-bottom: 8px;
 }
 
 .seat-info-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   text-align: center;
 }
@@ -189,25 +200,26 @@
   align-items: center;
   gap: 6px;
   padding: 14px 6px;
-  background: rgba(255,255,255,0.03);
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 3px solid var(--border-color);
   min-width: 0; 
+  box-shadow: 2px 2px 0 0 #000;
 }
 
 .seat-info-cell .cell-label {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: rgba(255,255,255,0.3);
+  color: var(--text-secondary);
 }
 
 .seat-info-cell .cell-value {
   font-family: var(--font-heading);
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 900;
-  color: white;
+  color: var(--text-primary);
   line-height: 1.1;
   word-wrap: break-word;
   hyphens: auto;
@@ -224,7 +236,7 @@
   align-items: center;
   gap: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 3px solid var(--border-color);
   flex-wrap: wrap;
 }
 
@@ -233,13 +245,13 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: rgba(255,255,255,0.4);
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-weight: 800;
 }
 
 /* ── QR Code Section ──────────────────────────────────────── */
 .ticket-qr-section {
-  background: #0a0f1a;
+  background: var(--accent-secondary);
   padding: 20px 24px 24px;
   display: flex;
   align-items: center;
@@ -249,11 +261,12 @@
 .qr-box {
   flex-shrink: 0;
   background: white;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
+  border: 3px solid var(--border-color);
   padding: 12px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 .qr-scan-line {
@@ -342,16 +355,20 @@
 .action-btn-p:active { transform: scale(0.97); opacity: 0.9; }
 
 .primary-action-p {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  box-shadow: 0 8px 20px rgba(99,102,241,0.35);
+  background: var(--accent-primary);
+  color: var(--text-primary);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  text-transform: uppercase;
 }
 
 .secondary-action-p {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
   color: var(--text-primary);
   justify-content: center;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-sm);
 }
 
 .action-row {
@@ -377,10 +394,11 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px;
+  padding: 16px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+  border: 3px solid var(--border-color);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
   transition: background 0.2s;
   cursor: pointer;
 }
@@ -408,13 +426,14 @@
 /* ── Loyalty Banner ───────────────────────────────────────── */
 .loyalty-banner {
   position: relative;
-  background: linear-gradient(135deg, #1a1338 0%, #0f1523 100%);
+  background: var(--accent-warning);
   padding: var(--spacing-6);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   display: flex;
   gap: 20px;
   overflow: hidden;
-  border: 1px solid rgba(255,184,0,0.08);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .loyalty-tag {
@@ -449,11 +468,13 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-md);
   font-size: 12px;
-  font-weight: 600;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  font-weight: 800;
+  text-transform: uppercase;
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Toast */

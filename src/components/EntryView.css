@@ -37,13 +37,15 @@
   font-family: var(--font-heading);
   letter-spacing: -1px;
   margin-bottom: 8px;
-  color: #FFFFFF;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  font-weight: 900;
 }
 
 .branding p {
   color: var(--text-secondary);
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 700;
 }
 
 .feature-list {
@@ -58,15 +60,15 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: rgba(28, 28, 31, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
   padding: 16px 20px;
   border-radius: var(--radius-md);
-  font-weight: 500;
+  font-weight: 800;
   font-size: 16px;
   color: var(--text-primary);
+  text-transform: uppercase;
 }
 
 .feat-icon {
@@ -81,21 +83,28 @@
   gap: 12px;
   width: 100%;
   padding: 18px;
-  background: #FFFFFF;
-  color: #000000;
-  border: none;
-  border-radius: 30px;
+  background: var(--accent-success);
+  color: var(--text-primary);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-md);
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 800;
+  text-transform: uppercase;
   transition: all 0.2s ease;
 }
 
+.primary-scan-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
 .primary-scan-btn:active {
-  transform: scale(0.98);
+  transform: translate(4px, 4px);
 }
 
 .btn-icon {
-  color: #000000;
+  color: var(--text-primary);
 }
 
 /* Scanner */
@@ -152,12 +161,12 @@
 .gate-recommendation {
   width: 100%;
   padding: var(--spacing-6);
-  border-radius: 28px;
-  background: linear-gradient(165deg, #0A0F1E 0%, #020202 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  background: var(--accent-primary);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -184,13 +193,13 @@
 }
 
 .ticket-identity-badge {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
   padding: 10px 16px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -198,6 +207,8 @@
   margin-bottom: 8px;
   text-align: center;
   max-width: 90%;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 0 #000;
 }
 
 .ticket-identity-badge .separator {
@@ -219,20 +230,18 @@
 .gate-number-glow {
   font-size: 56px;
   font-weight: 900;
-  background: linear-gradient(to bottom, #FFFFFF 0%, #3B82F6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
   font-family: var(--font-heading);
-  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.5));
 }
 
 .gate-stats-shelf {
   display: flex;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-md);
   padding: 16px;
   gap: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .g-stat {
@@ -247,14 +256,15 @@
 }
 
 .stat-icon-wrap {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--accent-warning);
+  border: 3px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .stat-content {
@@ -279,16 +289,17 @@
 }
 
 .gate-warning-banner {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: var(--accent-warning);
+  border: 3px solid var(--border-color);
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #F59E0B;
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .warning-dot {
@@ -315,11 +326,20 @@
   gap: 8px;
   width: 100%;
   padding: 16px;
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  border-radius: var(--radius-lg);
+  background: var(--accent-success);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 800;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.enter-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .entry-actions {
@@ -335,18 +355,20 @@
   justify-content: center;
   gap: 10px;
   padding: 16px;
-  background: rgba(28, 28, 31, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-secondary);
-  border-radius: 30px;
-  font-weight: 600;
-  font-size: 15px;
+  background: var(--bg-elevated);
+  border: 3px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  font-size: 16px;
   transition: all 0.2s;
+  text-transform: uppercase;
 }
 
 .secondary-entry-btn:active {
-  background: rgba(255, 255, 255, 0.05);
-  transform: scale(0.98);
+  transform: translate(4px, 4px);
+  box-shadow: none;
 }
 
 .manual-entry-content {
@@ -426,31 +448,30 @@
 }
 
 .manual-input, .premium-select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
-  padding: 18px 20px;
-  border-radius: 20px;
+  background: var(--bg-secondary);
+  border: 3px solid var(--border-color);
+  padding: 16px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 16px;
   font-family: var(--font-heading);
-  font-weight: 600;
+  font-weight: 800;
   outline: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   width: 100%;
+  box-shadow: var(--shadow-sm);
 }
 
 .premium-select option {
-  background: #111;
-  color: white;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   padding: 10px;
 }
 
 .manual-input:focus, .premium-select:focus {
-  border-color: #2563EB;
-  background: rgba(37, 99, 235, 0.05);
-  box-shadow: 0 0 20px rgba(37, 99, 235, 0.15);
-  transform: translateY(-1px);
+  border-color: var(--border-focus);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px var(--border-color);
 }
 
 .custom-input-wrap {

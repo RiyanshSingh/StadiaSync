@@ -5,11 +5,12 @@ import { useApp } from '../contexts/AppContext';
 import './TicketsView.css';
 
 export default function TicketsView() {
-  const { navigateTo, userTicket } = useApp();
+  const { navigateTo, userTicket, guestTicketData } = useApp();
   const [toastMessage, setToastMessage] = useState('');
 
-  const ticketData = userTicket || {
-    section: '--',    row: '--',
+  const displayTicket = userTicket || guestTicketData;
+  const ticketData = displayTicket || {
+    block: '--',    row: '--',
     seat: '--',
     gate: '--',
     date: '--',
@@ -54,7 +55,7 @@ export default function TicketsView() {
               </div>
             </div>
             <div className="ticket-venue-title">
-              {ticketData.venue || 'Stadium Entry'}
+              {ticketData.stadium || 'Stadium Entry'}
             </div>
           </div>
 
@@ -67,11 +68,13 @@ export default function TicketsView() {
 
           {/* ── Seat Info ── */}
           <div className="ticket-seat-section">
-            <div className="seat-info-grid">
-              <div className="seat-info-cell">
-                <span className="cell-label">Section</span>
-                <span className="cell-value">{ticketData.section}</span>
+            <div className="seat-info-top">
+              <div className="seat-info-cell block-cell">
+                <span className="cell-label">Block</span>
+                <span className="cell-value">{ticketData.block}</span>
               </div>
+            </div>
+            <div className="seat-info-grid">
               <div className="seat-info-cell">
                 <span className="cell-label">Row</span>
                 <span className="cell-value">{ticketData.row}</span>
@@ -82,7 +85,7 @@ export default function TicketsView() {
               </div>
               <div className="seat-info-cell">
                 <span className="cell-label">Gate</span>
-                <span className="cell-value accent">{ticketData.gate?.replace(/^Gate /i, '') || '--'}</span>
+                <span className="cell-value accent">{ticketData.gate}</span>
               </div>
             </div>
 

@@ -6,7 +6,8 @@ import { useApp } from '../contexts/AppContext';
 import './MapView.css';
 
 export default function MapView() {
-  const { userTicket, session } = useApp();
+  const { userTicket, guestTicketData, session } = useApp();
+  const displayTicket = userTicket || guestTicketData;
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeDestination, setActiveDestination] = useState<any>(null);
 
@@ -38,7 +39,7 @@ export default function MapView() {
   };
 
   const defaultVenue = { stands: ["Main Stand", "Opposite Stand", "East Wing", "West Wing"] };
-  const currentVenue = userTicket ? (venueConfigs[userTicket.stadium] || defaultVenue) : defaultVenue;
+  const currentVenue = displayTicket ? (venueConfigs[displayTicket.stadium] || defaultVenue) : defaultVenue;
   
   // Interactive Map States
   const [zoom, setZoom] = useState(1);
@@ -131,7 +132,7 @@ export default function MapView() {
               <h4>Routing to {activeDestination.label}</h4>
               <span>
                 From your seat
-                {userTicket ? ` · ${userTicket.block || ''} R${userTicket.row || ''} S${userTicket.seat || ''}` : ''}
+                {displayTicket ? ` · ${displayTicket.block || ''} R${displayTicket.row || ''} S${displayTicket.seat || ''}` : ''}
               </span>
             </div>
           ) : (
