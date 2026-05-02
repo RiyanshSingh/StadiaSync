@@ -150,14 +150,21 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
 
       if (supabase && isSupabaseEnabled) {
         const { error } = await supabase.from('user_tickets').insert({
-          ...userTicket,
           uid: user.id,
-          gate_note: `Use ${finalGate} for your assigned entry.`,
-          timestamp: new Date().toISOString()
+          stadium: userTicket.stadium,
+          block: userTicket.block,
+          gate: userTicket.gate,
+          row: userTicket.row,
+          seat: userTicket.seat,
+          ticket_id: userTicket.ticket_id,
+          date: userTicket.date ?? null,
+          time: userTicket.time ?? null,
+          timestamp: new Date().toISOString(),
         });
 
         if (error) {
-          throw error;
+          // Non-fatal: log and continue — user still gets their gate recommendation
+          console.warn('Ticket insert warning:', error.message);
         }
       }
 
