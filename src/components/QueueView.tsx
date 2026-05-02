@@ -1,0 +1,100 @@
+import { Activity, Clock, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { FALLBACK_QUEUES } from '../constants/fallbackData';
+import './QueueView.css';
+
+export default function QueueView() {
+  const [queues, setQueues] = useState<any[]>(FALLBACK_QUEUES);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    const fetchQueues = async () => {
+      const { data } = await supabase.from('queue_status').select('*');
+      if (data && data.length > 0) {
+        setQueues(data.map(q => ({
+          id: q.id,
+          type: q.type ?? 'Gate',
+          name: q.name ?? q.id,
+          waitMin: q.waitMin ?? 0,
+          status: q.status ?? 'Low Wait',
+        })));
+        setIsLive(true);
+      }
+    };
+
+    fetchQueues();
+
+    const channel = supabase
+      .channel('queue_status_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'queue_status' }, () => {
+        fetchQueues();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const getStatusColor = (status: string) => {
+    if (status === 'Low Wait')    return 'var(--accent-success)';
+    if (status === 'Medium Wait') return '#FF9500';
+    return '#FF3B30';
+  };
+
+  const getStatusClass = (status: string) => {
+    if (status === 'Low Wait')    return 'q-low';
+    if (status === 'Medium Wait') return 'q-med';
+    return 'q-high';
+  };
+
+  return (
+    <div className="queue-container">
+      <div className="queue-header">
+        <h2 className="display-title">Live<br/><span className="text-accent-primary">Queues.</span></h2>
+        <p className="page-subtitle">
+          {isLive ? '🟢 Real-time stadium traffic' : 'Demo data — connect admin panel to go live'}
+        </p>
+      </div>
+
+      <div className="queue-list">
+        <AnimatePresence>
+          {queues.map((q, index) => (
+            <motion.div
+              key={q.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ delay: index * 0.07 }}
+              className={`queue-card glass-panel ${getStatusClass(q.status)}`}
+            >
+              <div className="qc-left">
+                <span className="qc-type">{q.type}</span>
+                <span className="qc-name">{q.name}</span>
+              </div>
+
+              <div className="qc-right">
+                <div className="qc-status-badge">
+                  <Activity size={14} style={{ color: getStatusColor(q.status) }} />
+                  {q.status}
+                </div>
+                <div className="qc-time">
+                  <Clock size={16} />
+                  <span>{q.waitMin} min</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      <div className="queue-info glass-panel-elevated">
+        <Users size={20} className="text-secondary" />
+        <p className="text-secondary">
+          Wait times are estimated using live camera density and scan frequency. Accuracy margin is ±2 minutes.
+        </p>
+      </div>
+    </div>
+  );
+}
