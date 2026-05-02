@@ -311,7 +311,7 @@ function App() {
     }
     if (session && supabase) {
       tabSyncTimeout.current = setTimeout(() => {
-        void supabase.from('users').upsert({
+        void supabase!.from('users').upsert({
           id: session.id,
           last_active_tab: tab,
           ...(tab === 'alerts' ? { last_alert_read_at: new Date().toISOString() } : {}),
