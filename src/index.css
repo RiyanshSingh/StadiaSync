@@ -97,6 +97,14 @@ body {
   justify-content: center;
 }
 
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 480px) {
   body {
     background-color: var(--bg-primary); /* Original white-ish bg on mobile */
