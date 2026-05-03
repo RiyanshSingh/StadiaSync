@@ -1,4 +1,4 @@
-import { LogOut, Settings, Award, History, Heart, ShieldCheck, Mail, Phone, ChevronRight, User, ExternalLink, MapPin, Edit3, Save } from 'lucide-react';
+import { LogOut, Settings, Award, History, Heart, ShieldCheck, Mail, Phone, ChevronRight, User, MapPin, Edit3, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';

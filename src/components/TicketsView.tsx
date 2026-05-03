@@ -1,4 +1,4 @@
-import { QrCode, Share, Download, MapPin, Calendar, Clock, CheckCircle2, ScanLine, CreditCard, ChevronRight, HelpCircle, Coffee, ShieldCheck, Target, Zap, Award } from 'lucide-react';
+import { Share, Download, MapPin, Calendar, Clock, CheckCircle2, CreditCard, ChevronRight, HelpCircle, Coffee, ShieldCheck, Target, Zap, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
