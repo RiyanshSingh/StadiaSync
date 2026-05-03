@@ -154,9 +154,8 @@ export default function DashboardView() {
         <div className="ap-top">
           <div className="ap-meta">
              <span className="live-status">{matchData?.status || 'LOCKED'}</span>
-             <span className="game-timer text-accent-primary">{matchData?.timer || 'Starts soon'}</span>
           </div>
-          <Ticket className="text-secondary" size={20} />
+          <Ticket className="text-primary" size={20} />
         </div>
 
         <div className="ap-body">
@@ -306,7 +305,7 @@ export default function DashboardView() {
         <div className="section-header-compact">
           <h3 className="section-title">Transport to {homeLocation ? homeLocation : 'Home'}</h3>
           <div className="live-pill-mini">
-            <span className="dot pulse"></span> LIVE
+            LIVE
           </div>
         </div>
         <div className="transport-list">

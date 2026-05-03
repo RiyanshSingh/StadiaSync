@@ -56,13 +56,13 @@
 /* ── Top Hero Section ─────────────────────────────────────── */
 .ticket-hero.simplified {
   position: relative;
-  padding: 24px 24px 32px;
+  padding: 16px 20px 20px;
   background: var(--accent-primary);
   border-bottom: 3px solid var(--border-color);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .ticket-venue-title {
@@ -108,36 +108,27 @@
   font-family: var(--font-heading);
   font-size: 13px;
   font-weight: 900;
-  color: #6366f1;
+  color: #fff;
   letter-spacing: 2px;
 }
 
 .ticket-status-pill {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(52, 199, 89, 0.12);
-  border: 1px solid rgba(52, 199, 89, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 100px;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #34c759;
-  letter-spacing: 0.5px;
+  padding: 6px 14px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.status-live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #34c759;
-  animation: pulse-dot 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.7); }
-}
+/* Status dot removed */
 
 
 
@@ -150,30 +141,22 @@
   align-items: center;
 }
 
-.perf-notch {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--bg-primary);
-  flex-shrink: 0;
-  position: relative;
-  z-index: 2;
-}
+/* Notches removed */
 
 .perf-line {
   flex: 1;
   border: none;
-  border-top: 2px dashed rgba(255,255,255,0.08);
+  border-top: 2px dashed rgba(0,0,0,0.1);
   margin: 0;
 }
 
 /* ── Seat Info Section ────────────────────────────────────── */
 .ticket-seat-section {
   background: var(--bg-elevated);
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 12px;
   border-bottom: 3px solid var(--border-color);
 }
 
@@ -235,8 +218,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 16px;
-  border-top: 3px solid var(--border-color);
+  padding-top: 4px;
   flex-wrap: wrap;
 }
 
@@ -245,93 +227,14 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-weight: 800;
 }
 
+/* ID footer removed */
+
 /* ── QR Code Section ──────────────────────────────────────── */
-.ticket-qr-section {
-  background: var(--accent-secondary);
-  padding: 20px 24px 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.qr-box {
-  flex-shrink: 0;
-  background: white;
-  border-radius: var(--radius-md);
-  border: 3px solid var(--border-color);
-  padding: 12px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-}
-
-.qr-scan-line {
-  position: absolute;
-  left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #6366f1, transparent);
-  box-shadow: 0 0 8px #6366f1;
-  animation: scan-v 2.5s ease-in-out infinite;
-}
-
-@keyframes scan-v {
-  0%   { top: 10%; opacity: 0; }
-  15%  { opacity: 1; }
-  85%  { opacity: 1; }
-  100% { top: 90%; opacity: 0; }
-}
-
-.qr-icon {
-  color: #000;
-  display: block;
-}
-
-.qr-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.qr-ticket-id {
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-  color: rgba(255,255,255,0.3);
-  letter-spacing: 1.5px;
-  word-break: break-all;
-}
-
-.nfc-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(99,102,241,0.1);
-  border: 1px solid rgba(99,102,241,0.3);
-  border-radius: 100px;
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #818cf8;
-  width: fit-content;
-}
-
-.valid-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(52,199,89,0.08);
-  border: 1px solid rgba(52,199,89,0.25);
-  border-radius: 100px;
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #34c759;
-  width: fit-content;
-}
+/* QR Code Section Removed */
 
 /* ── Action Buttons ───────────────────────────────────────── */
 .ticket-actions {
@@ -406,17 +309,22 @@
 .util-card:active { background: var(--bg-tertiary); }
 
 .util-icon-circle {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
 }
-.util-icon-circle.blue   { background: rgba(99,102,241,0.1); color: #6366f1; }
-.util-icon-circle.yellow { background: rgba(255,184,0,0.1);  color: var(--accent-warning); }
-.util-icon-circle.red    { background: rgba(255,90,95,0.1);  color: var(--accent-tertiary); }
+
+.util-icon-circle.blue   { background: rgba(99,102,241,0.15); color: #312e81; border-color: rgba(99,102,241,0.3); }
+.util-icon-circle.orange { background: rgba(255,120,0,0.15);  color: #7c2d12; border-color: rgba(255,120,0,0.3); }
+.util-icon-circle.yellow { background: rgba(255,184,0,0.15);  color: #713f12; border-color: rgba(255,184,0,0.3); }
+.util-icon-circle.red    { background: rgba(255,90,95,0.15);  color: #7f1d1d; border-color: rgba(255,90,95,0.3); }
+.util-icon-circle.purple { background: rgba(167,139,250,0.15); color: #4c1d95; border-color: rgba(167,139,250,0.3); }
 
 .util-info { flex: 1; }
 .util-info h6 { font-size: 15px; font-weight: 600; margin-bottom: 2px; color: var(--text-primary); }

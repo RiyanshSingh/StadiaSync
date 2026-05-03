@@ -48,7 +48,14 @@ function App() {
     }
   });
   const [isCheckingAuth, setIsCheckingAuth] = useState(isSupabaseEnabled);
-  const [userTicket, setUserTicket] = useState<UserTicket | null>(null);
+  const [userTicket, setUserTicket] = useState<UserTicket | null>(() => {
+    const saved = localStorage.getItem('user_ticket_data');
+    try {
+      return saved ? (JSON.parse(saved) as UserTicket) : null;
+    } catch (error) {
+      return null;
+    }
+  });
   const [matchData, setMatchData] = useState<MatchData | null>(null);
   const [homeLocation, setHomeLocation] = useState<string | null>(null);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
@@ -77,11 +84,18 @@ function App() {
   useEffect(() => {
     if (guestTicketData) {
       localStorage.setItem('guest_ticket_data', JSON.stringify(guestTicketData));
-      return;
+    } else {
+      localStorage.removeItem('guest_ticket_data');
     }
-
-    localStorage.removeItem('guest_ticket_data');
   }, [guestTicketData]);
+
+  useEffect(() => {
+    if (userTicket) {
+      localStorage.setItem('user_ticket_data', JSON.stringify(userTicket));
+    } else {
+      localStorage.removeItem('user_ticket_data');
+    }
+  }, [userTicket]);
 
   useEffect(() => {
     const client = supabase;
@@ -140,7 +154,15 @@ function App() {
         .maybeSingle();
 
       if (!isCancelled) {
-        setMatchData((currentMatch as MatchData | null) ?? null);
+        const match = currentMatch as MatchData | null;
+        setMatchData(match || {
+          id: 'current_match',
+          stadium: 'Narendra Modi Stadium',
+          date: 'MAY 03, 2026',
+          time: '19:30 IST',
+          status: 'LIVE',
+          timer: '12:44'
+        });
       }
 
       matchChannel = client
@@ -175,7 +197,13 @@ function App() {
           .limit(1);
 
         if (!isCancelled) {
-          setUserTicket((data?.[0] as UserTicket | undefined) ?? null);
+          const ticket = (data?.[0] as UserTicket | undefined) ?? null;
+          setUserTicket(ticket);
+          // If the user already has a ticket, they've clearly entered before.
+          if (ticket) {
+            setHasEntered(true);
+            localStorage.setItem('has_entered', 'true');
+          }
         }
       };
 
@@ -189,7 +217,8 @@ function App() {
         if (!isCancelled) {
           const profile = data as UserProfileRow | null;
           setHomeLocation(profile?.homeLocation ?? null);
-          setHasEntered(Boolean(profile?.onboarded));
+          const onboarded = Boolean(profile?.onboarded);
+          setHasEntered(prev => prev === onboarded ? prev : onboarded);
           if (profile?.last_active_tab && VALID_TABS.includes(profile.last_active_tab as AppTab)) {
             setActiveTab(profile.last_active_tab as AppTab);
           }
@@ -217,7 +246,8 @@ function App() {
           (payload) => {
             const profile = payload.new as UserProfileRow;
             setHomeLocation(profile.homeLocation ?? null);
-            setHasEntered(Boolean(profile.onboarded));
+            const onboarded = Boolean(profile.onboarded);
+            setHasEntered(prev => prev === onboarded ? prev : onboarded);
           },
         )
         .subscribe();
@@ -464,7 +494,7 @@ function App() {
               onClick={() => handleTabChange('home')}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}
             >
-              <span style={{ fontSize: '28px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: '22px', fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.5px' }}>
                 {getPageTitle(activeTab)}
               </span>
               <span

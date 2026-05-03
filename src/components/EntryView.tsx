@@ -165,6 +165,9 @@ export default function EntryView({ onEnter, onBack }: { onEnter: () => void, on
         if (error) {
           // Non-fatal: log and continue — user still gets their gate recommendation
           console.warn('Ticket insert warning:', error.message);
+        } else {
+          // Also mark as onboarded in the DB immediately so refreshes don't reset them
+          await supabase.from('users').update({ onboarded: true }).eq('id', user.id);
         }
       }
 

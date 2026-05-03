@@ -7,7 +7,8 @@ import { useApp } from '../contexts/AppContext';
 import './ProfileView.css';
 
 export default function ProfileView() {
-  const { isSupabaseEnabled, navigateTo, session: user, setUserTicket } = useApp();
+  const { isSupabaseEnabled, navigateTo, session: user, setUserTicket, userTicket, guestTicketData } = useApp();
+  const displayTicket = userTicket || guestTicketData;
   const [toast, setToast] = useState('');
   const [stats, setStats] = useState({ matches: 0, orders: 0, points: 2400 });
   const [phoneNumber] = useState('+91 ••••• ••422');
@@ -376,6 +377,42 @@ export default function ProfileView() {
             {isEditingTicket ? 'Cancel' : <><Edit3 size={14} style={{ marginRight: 4 }} /> Edit Details</>}
           </button>
         </div>
+
+        {!isEditingTicket && displayTicket && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="glass-panel" 
+            style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 12 }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
+              {displayTicket.stadium}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Block - Top Row */}
+              <div style={{ background: 'var(--bg-secondary)', padding: '12px 16px', borderRadius: 'var(--radius-md)', border: '2px solid var(--border-color)', boxShadow: '4px 4px 0 0 #000' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 1, display: 'block', marginBottom: 4 }}>Block</span>
+                <span style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>{displayTicket.block}</span>
+              </div>
+              
+              {/* Others - Bottom Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                <div style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', border: '2px solid var(--border-color)', textAlign: 'center', boxShadow: '3px 3px 0 0 #000' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Row</span>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>{displayTicket.row}</span>
+                </div>
+                <div style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', border: '2px solid var(--border-color)', textAlign: 'center', boxShadow: '3px 3px 0 0 #000' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Seat</span>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>{displayTicket.seat}</span>
+                </div>
+                <div style={{ background: 'var(--bg-secondary)', padding: '10px', borderRadius: 'var(--radius-md)', border: '2px solid var(--border-color)', textAlign: 'center', boxShadow: '3px 3px 0 0 #000' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Gate</span>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: '#6366f1' }}>{displayTicket.gate}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
         
         <AnimatePresence>
           {isEditingTicket && (
@@ -452,14 +489,9 @@ export default function ProfileView() {
           </button>
         )}
 
-        <button className="external-link-btn" onClick={() => window.open('https://stadium.gov.in', '_blank')}>
-          Stadium Guidelines & Safety <ExternalLink size={14} />
-        </button>
-
         <button className="sign-out-btn shadow-glow" onClick={handleSignOut}>
           <LogOut size={18} /> Sign Out of StadiaSync
         </button>
-        <p className="app-version">Version 2.0.4-stable • Build 1092</p>
       </div>
 
       <AnimatePresence>

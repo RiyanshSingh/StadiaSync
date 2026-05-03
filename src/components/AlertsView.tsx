@@ -38,16 +38,25 @@ export default function AlertsView() {
             transition={{ delay: idx * 0.1 }}
             className={`l-alert-card ${alert.type === 'emergency' ? 'alert-emergency' : alert.type === 'warning' ? 'alert-warning' : 'alert-info'}`}
           >
-            <div className="l-alert-top">
-               <div className="l-alert-icon">
-                 {alert.type === 'emergency' ? <ShieldAlert size={24} /> : <AlertTriangle size={24} />}
-               </div>
-               <div className="l-alert-meta">
-                 <h4>{alert.title}</h4>
-                 <span className="l-alert-time">{alert.created_at ? getTimeAgo(alert.created_at) : 'Active'}</span>
-               </div>
+            <div className="l-alert-header">
+              <span style={{ fontWeight: 900, fontSize: 10, letterSpacing: 1.5 }}>
+                {alert.type === 'emergency' ? 'CRITICAL EMERGENCY' : alert.type === 'warning' ? 'SECURITY ALERT' : 'STADIUM INFO'}
+              </span>
+              <ShieldAlert size={14} />
             </div>
-            <p className="l-alert-desc">{alert.description}</p>
+
+            <div className="l-alert-body">
+              <div className="l-alert-top">
+                <div className="l-alert-icon">
+                  {alert.type === 'emergency' ? <ShieldAlert size={20} /> : <AlertTriangle size={20} />}
+                </div>
+                <div className="l-alert-meta">
+                  <h4>{alert.title}</h4>
+                  <span className="l-alert-time">{alert.created_at ? getTimeAgo(alert.created_at) : 'Active'}</span>
+                </div>
+              </div>
+              <p className="l-alert-desc">{alert.description}</p>
+            </div>
             
             {alert.type === 'emergency' && (
               <div className="l-alert-actions">

@@ -296,13 +296,16 @@ ul {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(0, 211, 100, 0.1);
-  color: var(--accent-success);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 100px; /* Fully rounded like others */
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dot.pulse {

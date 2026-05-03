@@ -166,12 +166,12 @@ export default function AdminView() {
     if (tab === 'alerts') loadAlerts();
   };
 
-  const tabs: { id: AdminTab; label: string }[] = [
-    { id: 'alerts', label: '🚨 Alerts' },
-    { id: 'match',  label: '🏏 Match' },
-    { id: 'queue',  label: '⏱ Queue' },
-    { id: 'food',   label: '🍔 Food' },
-    { id: 'crowd',  label: '👥 Crowd' },
+  const tabs: { id: AdminTab; label: string; icon: any }[] = [
+    { id: 'alerts', label: 'Alerts', icon: Radio },
+    { id: 'match',  label: 'Match',  icon: BarChart2 },
+    { id: 'queue',  label: 'Queue',  icon: Zap },
+    { id: 'food',   label: 'Food',   icon: Coffee },
+    { id: 'crowd',  label: 'Crowd',  icon: Users },
   ];
 
   return (
@@ -186,7 +186,7 @@ export default function AdminView() {
       <div className="admin-tabs">
         {tabs.map(t => (
           <button key={t.id} className={`admin-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
-            {t.label}
+            <t.icon size={16} /> {t.label}
           </button>
         ))}
       </div>

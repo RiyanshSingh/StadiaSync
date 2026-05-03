@@ -43,6 +43,13 @@ export default function TicketsView() {
     void loadTicketPerks();
   }, []);
 
+  // Live clock effect
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Removed local listeners as they are now centralized in App.tsx
 
   const showToast = (message: string) => {
@@ -114,7 +121,6 @@ export default function TicketsView() {
                 <span className="league-logo-text">ENTRY</span>
               </div>
               <div className="ticket-status-pill">
-                <span className="status-live-dot" />
                 VALID
               </div>
             </div>
@@ -125,9 +131,7 @@ export default function TicketsView() {
 
           {/* ── Perforated Separator ── */}
           <div className="ticket-perforation">
-            <div className="perf-notch" />
             <hr className="perf-line" />
-            <div className="perf-notch" />
           </div>
 
           {/* ── Seat Info ── */}
@@ -153,35 +157,14 @@ export default function TicketsView() {
               </div>
             </div>
 
-            {/* Event Meta */}
             <div className="ticket-event-meta">
               <div className="meta-item">
                 <Calendar size={12} />
-                {ticketData.date}
+                {currentTime.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}
               </div>
               <div className="meta-item">
                 <Clock size={12} />
-                {ticketData.time}
-              </div>
-            </div>
-          </div>
-
-          {/* ── QR Code + Badges ── */}
-          <div className="ticket-qr-section">
-            <motion.div className="qr-box" whileTap={{ scale: 0.97 }}>
-              <div className="qr-scan-line" />
-              <QrCode size={100} strokeWidth={1} className="qr-icon" />
-            </motion.div>
-
-            <div className="qr-details">
-              <p className="qr-ticket-id">ID: {ticketData.ticket_id}</p>
-              <div className="valid-badge">
-                <CheckCircle2 size={12} />
-                Verified Entry
-              </div>
-              <div className="nfc-badge">
-                <ScanLine size={12} />
-                Tap to Scan
+                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })} IST
               </div>
             </div>
           </div>
@@ -242,26 +225,28 @@ export default function TicketsView() {
       </section>
 
       {/* Premium Perk Banner */}
-      <div className="loyalty-banner glass-panel-elevated">
-        <div className="loyalty-content">
-          <div className="loyalty-tag">PREMIUM MATCH PERK</div>
-          <h4>{bannerPerk?.title || 'No live ticket perk'}</h4>
-          <p className="text-secondary">{bannerPerk?.description || 'Create a ticket_banner perk in Supabase to feature it here.'}</p>
+      {bannerPerk && (
+        <div className="loyalty-banner glass-panel-elevated">
+          <div className="loyalty-content">
+            <div className="loyalty-tag">PREMIUM MATCH PERK</div>
+            <h4>{bannerPerk.title}</h4>
+            <p className="text-secondary">{bannerPerk.description}</p>
+          </div>
+          <div className="shield-bg"><ShieldCheck size={80} strokeWidth={1} /></div>
         </div>
-        <div className="shield-bg"><ShieldCheck size={80} strokeWidth={1} /></div>
-      </div>
+      )}
 
       {/* Stats Pills */}
-      <section className="ticket-stats-region">
-        {(ticketStatPerks.length > 0 ? ticketStatPerks : [
-          { id: 'fallback-1', title: 'Ticket perks pending', description: '', cta_label: '', category: 'ticket_stat', status: 'active' },
-        ]).map((perk, index) => (
-          <div key={perk.id} className="stat-pill glass-panel">
-            {index === 0 ? <Target size={14} className="text-accent-secondary" /> : index === 1 ? <Zap size={14} className="text-accent-warning" /> : <Award size={14} className="text-accent-primary" />}
-            <span>{perk.title}</span>
-          </div>
-        ))}
-      </section>
+      {ticketStatPerks.length > 0 && (
+        <section className="ticket-stats-region">
+          {ticketStatPerks.map((perk, index) => (
+            <div key={perk.id} className="stat-pill glass-panel">
+              {index === 0 ? <Target size={14} className="text-accent-secondary" /> : index === 1 ? <Zap size={14} className="text-accent-warning" /> : <Award size={14} className="text-accent-primary" />}
+              <span>{perk.title}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Toast */}
       <AnimatePresence>

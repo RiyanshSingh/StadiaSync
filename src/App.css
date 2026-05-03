@@ -8,6 +8,7 @@
   background-color: var(--bg-primary);
   position: relative;
   overflow: hidden;
+  transform: translateZ(0); /* Constrains all position:fixed children to this container */
 }
 
 @media (min-width: 480px) {
