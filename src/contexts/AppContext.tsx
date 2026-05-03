@@ -24,6 +24,7 @@ export interface AlertData {
 }
 
 export interface MatchData {
+  id: string;
   stadium: string;
   date: string;
   time: string;
